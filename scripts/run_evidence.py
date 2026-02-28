@@ -19,6 +19,75 @@ from app.config import HOST, PORT  # noqa: E402
 BASE_URL = f"http://{HOST}:{PORT}"
 WS_URL = f"ws://{HOST}:{PORT}/api/v1/ws"
 
+STATUS_FIELDS = {
+    "ups": {
+        "ok",
+        "last_update_ms",
+        "battery_percent",
+        "input_voltage_v",
+        "output_voltage_v",
+        "load_percent",
+        "temperature_c",
+        "runtime_s",
+        "on_battery",
+    },
+    "os": {
+        "ok",
+        "last_update_ms",
+        "cpu_temp_c",
+        "cpu_percent",
+        "mem_used_mb",
+        "mem_total_mb",
+        "disk_used_mb",
+        "disk_total_mb",
+        "uptime_s",
+    },
+    "esp32": {
+        "ok",
+        "last_update_ms",
+        "connected",
+        "firmware_version",
+        "rssi_dbm",
+        "supply_voltage_v",
+        "temperature_c",
+    },
+    "antsdr": {
+        "ok",
+        "last_update_ms",
+        "center_freq_hz",
+        "sample_rate_hz",
+        "gain_db",
+        "rf_power_dbm",
+        "stream_active",
+    },
+    "remoteid": {
+        "ok",
+        "last_update_ms",
+        "contacts_count",
+        "last_contact_ms",
+        "latitude",
+        "longitude",
+    },
+    "video": {
+        "ok",
+        "last_update_ms",
+        "stream_ok",
+        "fps",
+        "bitrate_kbps",
+        "frame_width",
+        "frame_height",
+    },
+}
+
+HEALTH_FIELDS = {
+    "ups": {"ok", "last_update_ms", "comms_ok", "model", "serial", "firmware_version"},
+    "os": {"ok", "last_update_ms", "hostname", "os_version", "kernel_version", "time_sync_ok"},
+    "esp32": {"ok", "last_update_ms", "comms_ok", "last_error"},
+    "antsdr": {"ok", "last_update_ms", "device_present", "driver_ok"},
+    "remoteid": {"ok", "last_update_ms", "receiver_ok", "gps_ok"},
+    "video": {"ok", "last_update_ms", "encoder_ok", "camera_ok"},
+}
+
 
 def _check_keys(obj: Dict[str, Any], keys: List[str]) -> Tuple[bool, str]:
     missing = [k for k in keys if k not in obj]
@@ -27,12 +96,14 @@ def _check_keys(obj: Dict[str, Any], keys: List[str]) -> Tuple[bool, str]:
     return True, "ok"
 
 
-def _check_modules(obj: Dict[str, Any]) -> Tuple[bool, str]:
-    modules = obj.get("modules", {})
-    required = ["ups", "os", "esp32", "antsdr", "remoteid", "video"]
-    missing = [m for m in required if m not in modules]
-    if missing:
-        return False, f"missing_modules={missing}"
+def _check_module_fields(modules: Dict[str, Any], fields_map: Dict[str, set]) -> Tuple[bool, str]:
+    for module_name, required in fields_map.items():
+        if module_name not in modules:
+            return False, f"missing_modules={[module_name]}"
+        module_obj = modules.get(module_name, {})
+        missing = [k for k in required if k not in module_obj]
+        if missing:
+            return False, f"missing_fields={module_name}:{missing}"
     return True, "ok"
 
 
@@ -59,7 +130,7 @@ def run() -> int:
             r = client.get(f"{BASE_URL}/api/v1/status")
             ok, detail = _check_keys(r.json(), ["timestamp_ms", "overall_ok", "system", "modules"])
             if ok:
-                ok, detail = _check_modules(r.json())
+                ok, detail = _check_module_fields(r.json().get("modules", {}), STATUS_FIELDS)
             results.append(("status_keys", ok, detail))
         except Exception as exc:
             results.append(("status_keys", False, f"error={exc}"))
@@ -68,7 +139,7 @@ def run() -> int:
             r = client.get(f"{BASE_URL}/api/v1/health")
             ok, detail = _check_keys(r.json(), ["timestamp_ms", "overall_ok", "modules"])
             if ok:
-                ok, detail = _check_modules(r.json())
+                ok, detail = _check_module_fields(r.json().get("modules", {}), HEALTH_FIELDS)
             results.append(("health_keys", ok, detail))
         except Exception as exc:
             results.append(("health_keys", False, f"error={exc}"))

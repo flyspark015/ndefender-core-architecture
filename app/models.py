@@ -18,23 +18,144 @@ class EventEnvelope(BaseModel):
     data: Dict[str, Any]
 
 
-class ModuleStatus(BaseModel):
+class UpsStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
-    detail: Optional[Dict[str, Any]] = None
+    battery_percent: Optional[float] = None
+    input_voltage_v: Optional[float] = None
+    output_voltage_v: Optional[float] = None
+    load_percent: Optional[float] = None
+    temperature_c: Optional[float] = None
+    runtime_s: Optional[int] = None
+    on_battery: Optional[bool] = None
+
+
+class UpsHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    comms_ok: Optional[bool] = None
+    model: Optional[str] = None
+    serial: Optional[str] = None
+    firmware_version: Optional[str] = None
+
+
+class OsStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    cpu_temp_c: Optional[float] = None
+    cpu_percent: Optional[float] = None
+    mem_used_mb: Optional[float] = None
+    mem_total_mb: Optional[float] = None
+    disk_used_mb: Optional[float] = None
+    disk_total_mb: Optional[float] = None
+    uptime_s: Optional[int] = None
+
+
+class OsHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    hostname: Optional[str] = None
+    os_version: Optional[str] = None
+    kernel_version: Optional[str] = None
+    time_sync_ok: Optional[bool] = None
+
+
+class Esp32Status(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    connected: Optional[bool] = None
+    firmware_version: Optional[str] = None
+    rssi_dbm: Optional[float] = None
+    supply_voltage_v: Optional[float] = None
+    temperature_c: Optional[float] = None
+
+
+class Esp32Health(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    comms_ok: Optional[bool] = None
+    last_error: Optional[str] = None
+
+
+class AntsdrStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    center_freq_hz: Optional[float] = None
+    sample_rate_hz: Optional[float] = None
+    gain_db: Optional[float] = None
+    rf_power_dbm: Optional[float] = None
+    stream_active: Optional[bool] = None
+
+
+class AntsdrHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    device_present: Optional[bool] = None
+    driver_ok: Optional[bool] = None
+
+
+class RemoteIdStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    contacts_count: Optional[int] = None
+    last_contact_ms: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class RemoteIdHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    receiver_ok: Optional[bool] = None
+    gps_ok: Optional[bool] = None
+
+
+class VideoStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    stream_ok: Optional[bool] = None
+    fps: Optional[float] = None
+    bitrate_kbps: Optional[float] = None
+    frame_width: Optional[int] = None
+    frame_height: Optional[int] = None
+
+
+class VideoHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    encoder_ok: Optional[bool] = None
+    camera_ok: Optional[bool] = None
+
+
+class StatusModules(BaseModel):
+    ups: UpsStatus
+    os: OsStatus
+    esp32: Esp32Status
+    antsdr: AntsdrStatus
+    remoteid: RemoteIdStatus
+    video: VideoStatus
+
+
+class HealthModules(BaseModel):
+    ups: UpsHealth
+    os: OsHealth
+    esp32: Esp32Health
+    antsdr: AntsdrHealth
+    remoteid: RemoteIdHealth
+    video: VideoHealth
 
 
 class StatusSnapshot(BaseModel):
     timestamp_ms: int
     overall_ok: bool
     system: Dict[str, Any]
-    modules: Dict[str, ModuleStatus]
+    modules: StatusModules
 
 
 class DeepHealth(BaseModel):
     timestamp_ms: int
     overall_ok: bool
-    modules: Dict[str, ModuleStatus]
+    modules: HealthModules
 
 
 class CommandRequest(BaseModel):

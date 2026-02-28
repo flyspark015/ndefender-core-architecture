@@ -25,5 +25,19 @@ Proof:
 - `pytest -q`
 - `python3 scripts/run_evidence.py`
 
+## Phase B
+Before:
+- Contract only defined basic Phase A endpoints
+- Status/health modules had minimal schema checks
+
+After:
+- Expanded CONTRACT_V1 with per-module TX/RX contracts
+- Added explicit per-module status/health models
+- Strengthened tests and evidence schema checks
+
+Proof:
+- `pytest -q`
+- `python3 scripts/run_evidence.py`
+
 ## Next
-- Phase B contract expansion + module scaffolding
+- Phase C module implementations (real data sources)
