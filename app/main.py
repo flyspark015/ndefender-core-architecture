@@ -13,11 +13,13 @@ BUS = EventBus()
 
 @app.get("/api/v1/status", response_model=StatusSnapshot)
 def get_status() -> StatusSnapshot:
+    STATE.refresh_os()
     return StatusSnapshot(**STATE.snapshot())
 
 
 @app.get("/api/v1/health", response_model=DeepHealth)
 def get_health() -> DeepHealth:
+    STATE.refresh_os()
     return DeepHealth(**STATE.health())
 
 

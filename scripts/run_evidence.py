@@ -18,6 +18,7 @@ from app.config import HOST, PORT  # noqa: E402
 
 BASE_URL = f"http://{HOST}:{PORT}"
 WS_URL = f"ws://{HOST}:{PORT}/api/v1/ws"
+THERMAL_PATH = Path("/sys/class/thermal/thermal_zone0/temp")
 
 STATUS_FIELDS = {
     "ups": {
@@ -88,6 +89,21 @@ HEALTH_FIELDS = {
     "video": {"ok", "last_update_ms", "encoder_ok", "camera_ok"},
 }
 
+SYSTEM_FIELDS = {
+    "timestamp_ms",
+    "cpu_temp_c",
+    "cpu_percent",
+    "mem_used_mb",
+    "mem_total_mb",
+    "disk_used_mb",
+    "disk_total_mb",
+    "uptime_s",
+}
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
 
 def _check_keys(obj: Dict[str, Any], keys: List[str]) -> Tuple[bool, str]:
     missing = [k for k in keys if k not in obj]
@@ -104,6 +120,46 @@ def _check_module_fields(modules: Dict[str, Any], fields_map: Dict[str, set]) ->
         missing = [k for k in required if k not in module_obj]
         if missing:
             return False, f"missing_fields={module_name}:{missing}"
+    return True, "ok"
+
+
+def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    system = status_obj.get("system", {})
+    missing = [k for k in SYSTEM_FIELDS if k not in system]
+    if missing:
+        return False, f"missing_system_fields={missing}"
+
+    for key in [
+        "cpu_percent",
+        "mem_used_mb",
+        "mem_total_mb",
+        "disk_used_mb",
+        "disk_total_mb",
+        "uptime_s",
+    ]:
+        if not _is_number(system.get(key)):
+            return False, f"system_field_not_number={key}"
+
+    if THERMAL_PATH.exists():
+        if not _is_number(system.get("cpu_temp_c")):
+            return False, "system_cpu_temp_not_number"
+
+    os_module = status_obj.get("modules", {}).get("os", {})
+    for key in [
+        "cpu_percent",
+        "mem_used_mb",
+        "mem_total_mb",
+        "disk_used_mb",
+        "disk_total_mb",
+        "uptime_s",
+    ]:
+        if not _is_number(os_module.get(key)):
+            return False, f"os_field_not_number={key}"
+
+    if THERMAL_PATH.exists():
+        if not _is_number(os_module.get("cpu_temp_c")):
+            return False, "os_cpu_temp_not_number"
+
     return True, "ok"
 
 
@@ -128,12 +184,17 @@ def run() -> int:
     with httpx.Client(timeout=2.0) as client:
         try:
             r = client.get(f"{BASE_URL}/api/v1/status")
-            ok, detail = _check_keys(r.json(), ["timestamp_ms", "overall_ok", "system", "modules"])
+            status_json = r.json()
+            ok, detail = _check_keys(status_json, ["timestamp_ms", "overall_ok", "system", "modules"])
             if ok:
-                ok, detail = _check_module_fields(r.json().get("modules", {}), STATUS_FIELDS)
+                ok, detail = _check_module_fields(status_json.get("modules", {}), STATUS_FIELDS)
             results.append(("status_keys", ok, detail))
+
+            ok, detail = _check_os_populated(status_json)
+            results.append(("os_populated", ok, detail))
         except Exception as exc:
             results.append(("status_keys", False, f"error={exc}"))
+            results.append(("os_populated", False, f"error={exc}"))
 
         try:
             r = client.get(f"{BASE_URL}/api/v1/health")

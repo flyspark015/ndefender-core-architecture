@@ -21,6 +21,7 @@ from .models import (
     VideoStatus,
     now_ms,
 )
+from .modules.os_module import read_os_health, read_os_status, status_to_system
 
 
 def _default_status_modules() -> StatusModules:
@@ -56,6 +57,14 @@ class StateStore:
     modules_health: HealthModules = field(default_factory=_default_health_modules)
     contacts: List[Dict[str, Any]] = field(default_factory=list)
     _lock: Lock = field(default_factory=Lock, repr=False)
+
+    def refresh_os(self) -> None:
+        status = read_os_status()
+        health = read_os_health()
+        with self._lock:
+            self.modules_status.os = status
+            self.modules_health.os = health
+            self.system = status_to_system(status)
 
     def snapshot(self) -> Dict[str, Any]:
         with self._lock:

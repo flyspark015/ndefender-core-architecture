@@ -39,5 +39,22 @@ Proof:
 - `pytest -q`
 - `python3 scripts/run_evidence.py`
 
+## Phase C.1
+Before:
+- system status was empty
+- os module fields were null placeholders only
+
+After:
+- OS module uses real Pi telemetry (cpu/mem/disk/uptime/temp)
+- system status populated from OS telemetry
+- OS health populated (hostname/os/kernel/time sync)
+- Evidence runner adds OS populated check
+
+Proof:
+- `pytest -q`
+- `python3 scripts/run_evidence.py`
+- `curl -sS http://127.0.0.1:8000/api/v1/status | head`
+- `curl -sS http://127.0.0.1:8000/api/v1/health | head`
+
 ## Next
-- Phase C module implementations (real data sources)
+- Phase C.2 module implementations (ups/esp32/antsdr/remoteid/video)
