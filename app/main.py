@@ -10,15 +10,20 @@ from .state import STATE
 app = FastAPI(title="N-Defender Unified Backend", version="0.1.0")
 BUS = EventBus()
 
+@app.on_event("startup")
+def _startup() -> None:
+    STATE.start_pollers()
 
 @app.get("/api/v1/status", response_model=StatusSnapshot)
 def get_status() -> StatusSnapshot:
+    STATE.start_pollers()
     STATE.refresh_os()
     return StatusSnapshot(**STATE.snapshot())
 
 
 @app.get("/api/v1/health", response_model=DeepHealth)
 def get_health() -> DeepHealth:
+    STATE.start_pollers()
     STATE.refresh_os()
     return DeepHealth(**STATE.health())
 

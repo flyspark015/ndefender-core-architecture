@@ -14,11 +14,19 @@ STATUS_FIELDS = {
         "last_update_ms",
         "last_error",
         "battery_percent",
+        "battery_voltage_v",
+        "battery_current_a",
+        "remaining_capacity_mah",
+        "runtime_s",
+        "cell_voltages_v",
+        "vbus_voltage_v",
+        "vbus_current_a",
+        "vbus_power_w",
+        "state",
         "input_voltage_v",
         "output_voltage_v",
         "load_percent",
         "temperature_c",
-        "runtime_s",
         "on_battery",
     },
     "os": {
@@ -128,6 +136,17 @@ def _assert_placeholder(module_obj):
     assert module_obj["last_error"] == "not_implemented"
 
 
+def _assert_ups_values(ups_obj):
+    assert ups_obj["ok"] is True
+    assert ups_obj["last_error"] is None
+    assert _is_number(ups_obj["battery_percent"])
+    assert _is_number(ups_obj["battery_voltage_v"])
+    assert ups_obj["battery_voltage_v"] > 0
+    assert isinstance(ups_obj["cell_voltages_v"], list)
+    assert len(ups_obj["cell_voltages_v"]) == 4
+    assert all(_is_number(v) and v > 0 for v in ups_obj["cell_voltages_v"])
+
+
 def test_status_shape():
     r = client.get("/api/v1/status")
     assert r.status_code == 200
@@ -144,7 +163,9 @@ def test_status_shape():
     assert os_module["ok"] is True
     assert os_module["last_error"] is None
 
-    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+    _assert_ups_values(data["modules"]["ups"])
+
+    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 
@@ -163,7 +184,13 @@ def test_health_shape():
     assert isinstance(os_health["kernel_version"], str)
     assert os_health["time_sync_ok"] in (True, False, None)
 
-    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+    ups_health = data["modules"]["ups"]
+    assert ups_health["ok"] is True
+    assert ups_health["last_error"] is None
+    assert ups_health["comms_ok"] is True
+    assert ups_health["model"] == "Waveshare UPS HAT (E)"
+
+    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 

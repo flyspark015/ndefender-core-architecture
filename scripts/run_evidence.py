@@ -26,11 +26,19 @@ STATUS_FIELDS = {
         "last_update_ms",
         "last_error",
         "battery_percent",
+        "battery_voltage_v",
+        "battery_current_a",
+        "remaining_capacity_mah",
+        "runtime_s",
+        "cell_voltages_v",
+        "vbus_voltage_v",
+        "vbus_current_a",
+        "vbus_power_w",
+        "state",
         "input_voltage_v",
         "output_voltage_v",
         "load_percent",
         "temperature_c",
-        "runtime_s",
         "on_battery",
     },
     "os": {
@@ -174,12 +182,34 @@ def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
 
 
 def _check_placeholders(modules: Dict[str, Any]) -> Tuple[bool, str]:
-    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
         mod = modules.get(module_name, {})
         if mod.get("ok") is not False:
             return False, f"{module_name}_ok_not_false"
         if mod.get("last_error") != "not_implemented":
             return False, f"{module_name}_last_error_not_not_implemented"
+    return True, "ok"
+
+
+def _check_ups_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    ups = status_obj.get("modules", {}).get("ups", {})
+    if ups.get("ok") is not True:
+        return False, "ups_ok_not_true"
+    if ups.get("last_error") is not None:
+        return False, "ups_last_error_not_null"
+    if not _is_number(ups.get("battery_percent")):
+        return False, "ups_battery_percent_not_number"
+    if not _is_number(ups.get("battery_voltage_v")):
+        return False, "ups_battery_voltage_not_number"
+    if ups.get("battery_voltage_v") is not None and ups.get("battery_voltage_v") <= 0:
+        return False, "ups_battery_voltage_not_positive"
+    cells = ups.get("cell_voltages_v")
+    if not isinstance(cells, list):
+        return False, "ups_cells_not_list"
+    if len(cells) != 4:
+        return False, "ups_cells_len_not_4"
+    if not all(_is_number(v) and v > 0 for v in cells):
+        return False, "ups_cells_not_positive"
     return True, "ok"
 
 
@@ -197,6 +227,19 @@ def _check_os_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "os_health_kernel_version_not_string"
     if os_module.get("time_sync_ok") not in (True, False, None):
         return False, "os_health_time_sync_invalid"
+    return True, "ok"
+
+
+def _check_ups_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    ups = health_obj.get("modules", {}).get("ups", {})
+    if ups.get("ok") is not True:
+        return False, "ups_health_ok_not_true"
+    if ups.get("last_error") is not None:
+        return False, "ups_health_last_error_not_null"
+    if ups.get("comms_ok") is not True:
+        return False, "ups_health_comms_not_true"
+    if ups.get("model") != "Waveshare UPS HAT (E)":
+        return False, "ups_health_model_mismatch"
     return True, "ok"
 
 
@@ -230,11 +273,15 @@ def run() -> int:
             ok, detail = _check_os_populated(status_json)
             results.append(("os_populated", ok, detail))
 
+            ok, detail = _check_ups_populated(status_json)
+            results.append(("ups_populated", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
             results.append(("status_keys", False, f"error={exc}"))
             results.append(("os_populated", False, f"error={exc}"))
+            results.append(("ups_populated", False, f"error={exc}"))
             results.append(("placeholders_status", False, f"error={exc}"))
 
         try:
@@ -248,11 +295,15 @@ def run() -> int:
             ok, detail = _check_os_health(health_json)
             results.append(("os_health", ok, detail))
 
+            ok, detail = _check_ups_health(health_json)
+            results.append(("ups_health", ok, detail))
+
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))
         except Exception as exc:
             results.append(("health_keys", False, f"error={exc}"))
             results.append(("os_health", False, f"error={exc}"))
+            results.append(("ups_health", False, f"error={exc}"))
             results.append(("placeholders_health", False, f"error={exc}"))
 
         try:

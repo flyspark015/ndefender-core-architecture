@@ -66,25 +66,35 @@ Phase A/B behavior:
 Status object fields:
 - ok: bool
 - last_update_ms: int
+- last_error: string|null
 - battery_percent: float
+- battery_voltage_v: float
+- battery_current_a: float
+- remaining_capacity_mah: float
+- runtime_s: float
+- cell_voltages_v: list[float]
+- vbus_voltage_v: float
+- vbus_current_a: float
+- vbus_power_w: float
+- state: string
 - input_voltage_v: float
 - output_voltage_v: float
 - load_percent: float
 - temperature_c: float
-- runtime_s: int
 - on_battery: bool
 
 Health object fields:
 - ok: bool
 - last_update_ms: int
+- last_error: string|null
 - comms_ok: bool
 - model: string
 - serial: string
 - firmware_version: string
 
 WS events:
-- UPS_STATUS: { ok, last_update_ms, battery_percent, input_voltage_v, output_voltage_v, load_percent, temperature_c, runtime_s, on_battery }
-- UPS_HEALTH: { ok, last_update_ms, comms_ok, model, serial, firmware_version }
+- UPS_STATUS: { ok, last_update_ms, last_error, battery_percent, battery_voltage_v, battery_current_a, remaining_capacity_mah, runtime_s, cell_voltages_v, vbus_voltage_v, vbus_current_a, vbus_power_w, state, input_voltage_v, output_voltage_v, load_percent, temperature_c, on_battery }
+- UPS_HEALTH: { ok, last_update_ms, last_error, comms_ok, model, serial, firmware_version }
 
 Commands:
 - UPS_SELF_TEST

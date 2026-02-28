@@ -56,6 +56,26 @@ Proof:
 - `curl -sS http://127.0.0.1:8000/api/v1/status | head`
 - `curl -sS http://127.0.0.1:8000/api/v1/health | head`
 
+## Phase C.2 (UPS HAT E)
+Before:
+- UPS module placeholders only (ok=false, last_error=not_implemented)
+- No UPS I2C polling in backend
+
+Change:
+- Added UPS HAT (E) I2C reader and poll loop (1.5s)
+- UPS status/health populated with real values
+- Evidence/test assertions enforce UPS health + real readings
+
+After:
+- `/api/v1/status` reports UPS measurements and ok=true
+- `/api/v1/health` reports UPS comms_ok=true and model
+
+Proof:
+- `pytest -q`
+- `python3 scripts/run_evidence.py`
+- `curl -sS http://127.0.0.1:8000/api/v1/status | head -c 800 ; echo`
+- `curl -sS http://127.0.0.1:8000/api/v1/health | head -c 800 ; echo`
+
 Before:
 - PASS could still show placeholder modules without explanation
 

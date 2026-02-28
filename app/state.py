@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Event, Lock, Thread
+from time import sleep
 from typing import Any, Dict, List
 
+import os
+
+from .config import UPS_POLL_INTERVAL_S
 from .models import (
     AntsdrHealth,
     AntsdrStatus,
@@ -22,11 +26,12 @@ from .models import (
     now_ms,
 )
 from .modules.os_module import read_os_health, read_os_status, status_to_system
+from .modules.ups_hat_e import FakeUpsHatEReader, UpsHatEReader
 
 
 def _default_status_modules() -> StatusModules:
     return StatusModules(
-        ups=UpsStatus(ok=False, last_error="not_implemented"),
+        ups=UpsStatus(ok=False, last_error="ups_starting"),
         os=OsStatus(ok=False, last_error=None),
         esp32=Esp32Status(ok=False, last_error="not_implemented"),
         antsdr=AntsdrStatus(ok=False, last_error="not_implemented"),
@@ -37,7 +42,7 @@ def _default_status_modules() -> StatusModules:
 
 def _default_health_modules() -> HealthModules:
     return HealthModules(
-        ups=UpsHealth(ok=False, last_error="not_implemented"),
+        ups=UpsHealth(ok=False, last_error="ups_starting"),
         os=OsHealth(ok=False, last_error=None),
         esp32=Esp32Health(ok=False, last_error="not_implemented"),
         antsdr=AntsdrHealth(ok=False, last_error="not_implemented"),
@@ -57,6 +62,9 @@ class StateStore:
     modules_health: HealthModules = field(default_factory=_default_health_modules)
     contacts: List[Dict[str, Any]] = field(default_factory=list)
     _lock: Lock = field(default_factory=Lock, repr=False)
+    _pollers_started: bool = field(default=False, init=False)
+    _stop_event: Event = field(default_factory=Event, init=False, repr=False)
+    _ups_thread: Thread | None = field(default=None, init=False, repr=False)
 
     def refresh_os(self) -> None:
         status = read_os_status()
@@ -65,6 +73,30 @@ class StateStore:
             self.modules_status.os = status
             self.modules_health.os = health
             self.system = status_to_system(status)
+
+    def start_pollers(self) -> None:
+        if self._pollers_started:
+            return
+        self._pollers_started = True
+        reader: UpsHatEReader
+        if os.getenv("NDEFENDER_UPS_FAKE", "0") == "1":
+            reader = FakeUpsHatEReader()
+        else:
+            reader = UpsHatEReader()
+        status, health = reader.poll()
+        with self._lock:
+            self.modules_status.ups = status
+            self.modules_health.ups = health
+        self._ups_thread = Thread(target=self._ups_loop, args=(reader,), daemon=True)
+        self._ups_thread.start()
+
+    def _ups_loop(self, reader: UpsHatEReader) -> None:
+        while not self._stop_event.is_set():
+            status, health = reader.poll()
+            with self._lock:
+                self.modules_status.ups = status
+                self.modules_health.ups = health
+            sleep(UPS_POLL_INTERVAL_S)
 
     def snapshot(self) -> Dict[str, Any]:
         with self._lock:

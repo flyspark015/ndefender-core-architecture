@@ -23,11 +23,19 @@ class UpsStatus(BaseModel):
     last_update_ms: Optional[int] = None
     last_error: Optional[str] = None
     battery_percent: Optional[float] = None
+    battery_voltage_v: Optional[float] = None
+    battery_current_a: Optional[float] = None
+    remaining_capacity_mah: Optional[float] = None
+    cell_voltages_v: Optional[List[float]] = None
+    vbus_voltage_v: Optional[float] = None
+    vbus_current_a: Optional[float] = None
+    vbus_power_w: Optional[float] = None
+    state: Optional[str] = None
     input_voltage_v: Optional[float] = None
     output_voltage_v: Optional[float] = None
     load_percent: Optional[float] = None
     temperature_c: Optional[float] = None
-    runtime_s: Optional[int] = None
+    runtime_s: Optional[float] = None
     on_battery: Optional[bool] = None
 
 
