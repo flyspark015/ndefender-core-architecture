@@ -24,6 +24,7 @@ STATUS_FIELDS = {
     "ups": {
         "ok",
         "last_update_ms",
+        "last_error",
         "battery_percent",
         "input_voltage_v",
         "output_voltage_v",
@@ -35,6 +36,7 @@ STATUS_FIELDS = {
     "os": {
         "ok",
         "last_update_ms",
+        "last_error",
         "cpu_temp_c",
         "cpu_percent",
         "mem_used_mb",
@@ -46,6 +48,7 @@ STATUS_FIELDS = {
     "esp32": {
         "ok",
         "last_update_ms",
+        "last_error",
         "connected",
         "firmware_version",
         "rssi_dbm",
@@ -55,6 +58,7 @@ STATUS_FIELDS = {
     "antsdr": {
         "ok",
         "last_update_ms",
+        "last_error",
         "center_freq_hz",
         "sample_rate_hz",
         "gain_db",
@@ -64,6 +68,7 @@ STATUS_FIELDS = {
     "remoteid": {
         "ok",
         "last_update_ms",
+        "last_error",
         "contacts_count",
         "last_contact_ms",
         "latitude",
@@ -72,6 +77,7 @@ STATUS_FIELDS = {
     "video": {
         "ok",
         "last_update_ms",
+        "last_error",
         "stream_ok",
         "fps",
         "bitrate_kbps",
@@ -81,12 +87,12 @@ STATUS_FIELDS = {
 }
 
 HEALTH_FIELDS = {
-    "ups": {"ok", "last_update_ms", "comms_ok", "model", "serial", "firmware_version"},
-    "os": {"ok", "last_update_ms", "hostname", "os_version", "kernel_version", "time_sync_ok"},
-    "esp32": {"ok", "last_update_ms", "comms_ok", "last_error"},
-    "antsdr": {"ok", "last_update_ms", "device_present", "driver_ok"},
-    "remoteid": {"ok", "last_update_ms", "receiver_ok", "gps_ok"},
-    "video": {"ok", "last_update_ms", "encoder_ok", "camera_ok"},
+    "ups": {"ok", "last_update_ms", "last_error", "comms_ok", "model", "serial", "firmware_version"},
+    "os": {"ok", "last_update_ms", "last_error", "hostname", "os_version", "kernel_version", "time_sync_ok"},
+    "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
+    "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
+    "remoteid": {"ok", "last_update_ms", "last_error", "receiver_ok", "gps_ok"},
+    "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
 SYSTEM_FIELDS = {
@@ -145,6 +151,10 @@ def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
             return False, "system_cpu_temp_not_number"
 
     os_module = status_obj.get("modules", {}).get("os", {})
+    if os_module.get("ok") is not True:
+        return False, "os_ok_not_true"
+    if os_module.get("last_error") is not None:
+        return False, "os_last_error_not_null"
     for key in [
         "cpu_percent",
         "mem_used_mb",
@@ -160,6 +170,33 @@ def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
         if not _is_number(os_module.get("cpu_temp_c")):
             return False, "os_cpu_temp_not_number"
 
+    return True, "ok"
+
+
+def _check_placeholders(modules: Dict[str, Any]) -> Tuple[bool, str]:
+    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+        mod = modules.get(module_name, {})
+        if mod.get("ok") is not False:
+            return False, f"{module_name}_ok_not_false"
+        if mod.get("last_error") != "not_implemented":
+            return False, f"{module_name}_last_error_not_not_implemented"
+    return True, "ok"
+
+
+def _check_os_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    os_module = health_obj.get("modules", {}).get("os", {})
+    if os_module.get("ok") is not True:
+        return False, "os_health_ok_not_true"
+    if os_module.get("last_error") is not None:
+        return False, "os_health_last_error_not_null"
+    if not isinstance(os_module.get("hostname"), str):
+        return False, "os_health_hostname_not_string"
+    if not isinstance(os_module.get("os_version"), str):
+        return False, "os_health_os_version_not_string"
+    if not isinstance(os_module.get("kernel_version"), str):
+        return False, "os_health_kernel_version_not_string"
+    if os_module.get("time_sync_ok") not in (True, False, None):
+        return False, "os_health_time_sync_invalid"
     return True, "ok"
 
 
@@ -192,18 +229,31 @@ def run() -> int:
 
             ok, detail = _check_os_populated(status_json)
             results.append(("os_populated", ok, detail))
+
+            ok, detail = _check_placeholders(status_json.get("modules", {}))
+            results.append(("placeholders_status", ok, detail))
         except Exception as exc:
             results.append(("status_keys", False, f"error={exc}"))
             results.append(("os_populated", False, f"error={exc}"))
+            results.append(("placeholders_status", False, f"error={exc}"))
 
         try:
             r = client.get(f"{BASE_URL}/api/v1/health")
-            ok, detail = _check_keys(r.json(), ["timestamp_ms", "overall_ok", "modules"])
+            health_json = r.json()
+            ok, detail = _check_keys(health_json, ["timestamp_ms", "overall_ok", "modules"])
             if ok:
-                ok, detail = _check_module_fields(r.json().get("modules", {}), HEALTH_FIELDS)
+                ok, detail = _check_module_fields(health_json.get("modules", {}), HEALTH_FIELDS)
             results.append(("health_keys", ok, detail))
+
+            ok, detail = _check_os_health(health_json)
+            results.append(("os_health", ok, detail))
+
+            ok, detail = _check_placeholders(health_json.get("modules", {}))
+            results.append(("placeholders_health", ok, detail))
         except Exception as exc:
             results.append(("health_keys", False, f"error={exc}"))
+            results.append(("os_health", False, f"error={exc}"))
+            results.append(("placeholders_health", False, f"error={exc}"))
 
         try:
             r = client.get(f"{BASE_URL}/api/v1/contacts")

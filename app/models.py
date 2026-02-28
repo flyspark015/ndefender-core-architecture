@@ -21,6 +21,7 @@ class EventEnvelope(BaseModel):
 class UpsStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     battery_percent: Optional[float] = None
     input_voltage_v: Optional[float] = None
     output_voltage_v: Optional[float] = None
@@ -33,6 +34,7 @@ class UpsStatus(BaseModel):
 class UpsHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     comms_ok: Optional[bool] = None
     model: Optional[str] = None
     serial: Optional[str] = None
@@ -42,6 +44,7 @@ class UpsHealth(BaseModel):
 class OsStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     cpu_temp_c: Optional[float] = None
     cpu_percent: Optional[float] = None
     mem_used_mb: Optional[float] = None
@@ -54,6 +57,7 @@ class OsStatus(BaseModel):
 class OsHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     hostname: Optional[str] = None
     os_version: Optional[str] = None
     kernel_version: Optional[str] = None
@@ -63,6 +67,7 @@ class OsHealth(BaseModel):
 class Esp32Status(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     connected: Optional[bool] = None
     firmware_version: Optional[str] = None
     rssi_dbm: Optional[float] = None
@@ -73,13 +78,14 @@ class Esp32Status(BaseModel):
 class Esp32Health(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
-    comms_ok: Optional[bool] = None
     last_error: Optional[str] = None
+    comms_ok: Optional[bool] = None
 
 
 class AntsdrStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     center_freq_hz: Optional[float] = None
     sample_rate_hz: Optional[float] = None
     gain_db: Optional[float] = None
@@ -90,6 +96,7 @@ class AntsdrStatus(BaseModel):
 class AntsdrHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     device_present: Optional[bool] = None
     driver_ok: Optional[bool] = None
 
@@ -97,6 +104,7 @@ class AntsdrHealth(BaseModel):
 class RemoteIdStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     contacts_count: Optional[int] = None
     last_contact_ms: Optional[int] = None
     latitude: Optional[float] = None
@@ -106,6 +114,7 @@ class RemoteIdStatus(BaseModel):
 class RemoteIdHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     receiver_ok: Optional[bool] = None
     gps_ok: Optional[bool] = None
 
@@ -113,6 +122,7 @@ class RemoteIdHealth(BaseModel):
 class VideoStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     stream_ok: Optional[bool] = None
     fps: Optional[float] = None
     bitrate_kbps: Optional[float] = None
@@ -123,6 +133,7 @@ class VideoStatus(BaseModel):
 class VideoHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
     encoder_ok: Optional[bool] = None
     camera_ok: Optional[bool] = None
 

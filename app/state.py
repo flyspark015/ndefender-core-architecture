@@ -26,23 +26,23 @@ from .modules.os_module import read_os_health, read_os_status, status_to_system
 
 def _default_status_modules() -> StatusModules:
     return StatusModules(
-        ups=UpsStatus(ok=False),
-        os=OsStatus(ok=False),
-        esp32=Esp32Status(ok=False),
-        antsdr=AntsdrStatus(ok=False),
-        remoteid=RemoteIdStatus(ok=False),
-        video=VideoStatus(ok=False),
+        ups=UpsStatus(ok=False, last_error="not_implemented"),
+        os=OsStatus(ok=False, last_error=None),
+        esp32=Esp32Status(ok=False, last_error="not_implemented"),
+        antsdr=AntsdrStatus(ok=False, last_error="not_implemented"),
+        remoteid=RemoteIdStatus(ok=False, last_error="not_implemented"),
+        video=VideoStatus(ok=False, last_error="not_implemented"),
     )
 
 
 def _default_health_modules() -> HealthModules:
     return HealthModules(
-        ups=UpsHealth(ok=False),
-        os=OsHealth(ok=False),
-        esp32=Esp32Health(ok=False),
-        antsdr=AntsdrHealth(ok=False),
-        remoteid=RemoteIdHealth(ok=False),
-        video=VideoHealth(ok=False),
+        ups=UpsHealth(ok=False, last_error="not_implemented"),
+        os=OsHealth(ok=False, last_error=None),
+        esp32=Esp32Health(ok=False, last_error="not_implemented"),
+        antsdr=AntsdrHealth(ok=False, last_error="not_implemented"),
+        remoteid=RemoteIdHealth(ok=False, last_error="not_implemented"),
+        video=VideoHealth(ok=False, last_error="not_implemented"),
     )
 
 

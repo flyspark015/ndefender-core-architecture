@@ -86,6 +86,7 @@ def read_os_status() -> OsStatus:
     return OsStatus(
         ok=ok,
         last_update_ms=now_ms(),
+        last_error=None if ok else "os_telemetry_unavailable",
         cpu_temp_c=cpu_temp_c,
         cpu_percent=float(cpu_percent) if cpu_percent is not None else None,
         mem_used_mb=mem.used / (1024 * 1024),
@@ -107,6 +108,7 @@ def read_os_health() -> OsHealth:
     return OsHealth(
         ok=ok,
         last_update_ms=now_ms(),
+        last_error=None if ok else "os_health_unavailable",
         hostname=hostname,
         os_version=os_version,
         kernel_version=kernel_version,

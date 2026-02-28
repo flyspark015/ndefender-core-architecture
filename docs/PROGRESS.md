@@ -56,5 +56,18 @@ Proof:
 - `curl -sS http://127.0.0.1:8000/api/v1/status | head`
 - `curl -sS http://127.0.0.1:8000/api/v1/health | head`
 
+Before:
+- PASS could still show placeholder modules without explanation
+
+After:
+- Non-OS modules return deterministic `last_error=not_implemented`
+- Evidence/tests assert OS ok=true and placeholders ok=false
+
+Proof:
+- `pytest -q`
+- `python3 scripts/run_evidence.py`
+- `curl -sS http://127.0.0.1:8000/api/v1/status | head`
+- `curl -sS http://127.0.0.1:8000/api/v1/health | head`
+
 ## Next
 - Phase C.2 module implementations (ups/esp32/antsdr/remoteid/video)

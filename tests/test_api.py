@@ -12,6 +12,7 @@ STATUS_FIELDS = {
     "ups": {
         "ok",
         "last_update_ms",
+        "last_error",
         "battery_percent",
         "input_voltage_v",
         "output_voltage_v",
@@ -23,6 +24,7 @@ STATUS_FIELDS = {
     "os": {
         "ok",
         "last_update_ms",
+        "last_error",
         "cpu_temp_c",
         "cpu_percent",
         "mem_used_mb",
@@ -34,6 +36,7 @@ STATUS_FIELDS = {
     "esp32": {
         "ok",
         "last_update_ms",
+        "last_error",
         "connected",
         "firmware_version",
         "rssi_dbm",
@@ -43,6 +46,7 @@ STATUS_FIELDS = {
     "antsdr": {
         "ok",
         "last_update_ms",
+        "last_error",
         "center_freq_hz",
         "sample_rate_hz",
         "gain_db",
@@ -52,6 +56,7 @@ STATUS_FIELDS = {
     "remoteid": {
         "ok",
         "last_update_ms",
+        "last_error",
         "contacts_count",
         "last_contact_ms",
         "latitude",
@@ -60,6 +65,7 @@ STATUS_FIELDS = {
     "video": {
         "ok",
         "last_update_ms",
+        "last_error",
         "stream_ok",
         "fps",
         "bitrate_kbps",
@@ -69,12 +75,12 @@ STATUS_FIELDS = {
 }
 
 HEALTH_FIELDS = {
-    "ups": {"ok", "last_update_ms", "comms_ok", "model", "serial", "firmware_version"},
-    "os": {"ok", "last_update_ms", "hostname", "os_version", "kernel_version", "time_sync_ok"},
-    "esp32": {"ok", "last_update_ms", "comms_ok", "last_error"},
-    "antsdr": {"ok", "last_update_ms", "device_present", "driver_ok"},
-    "remoteid": {"ok", "last_update_ms", "receiver_ok", "gps_ok"},
-    "video": {"ok", "last_update_ms", "encoder_ok", "camera_ok"},
+    "ups": {"ok", "last_update_ms", "last_error", "comms_ok", "model", "serial", "firmware_version"},
+    "os": {"ok", "last_update_ms", "last_error", "hostname", "os_version", "kernel_version", "time_sync_ok"},
+    "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
+    "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
+    "remoteid": {"ok", "last_update_ms", "last_error", "receiver_ok", "gps_ok"},
+    "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
 SYSTEM_FIELDS = {
@@ -117,6 +123,11 @@ def _assert_os_numbers(os_obj):
         assert os_obj["cpu_temp_c"] is None or _is_number(os_obj["cpu_temp_c"])
 
 
+def _assert_placeholder(module_obj):
+    assert module_obj["ok"] is False
+    assert module_obj["last_error"] == "not_implemented"
+
+
 def test_status_shape():
     r = client.get("/api/v1/status")
     assert r.status_code == 200
@@ -130,6 +141,11 @@ def test_status_shape():
 
     os_module = data["modules"]["os"]
     _assert_os_numbers(os_module)
+    assert os_module["ok"] is True
+    assert os_module["last_error"] is None
+
+    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+        _assert_placeholder(data["modules"][module_name])
 
 
 def test_health_shape():
@@ -140,10 +156,15 @@ def test_health_shape():
     _assert_module_fields(data["modules"], HEALTH_FIELDS)
 
     os_health = data["modules"]["os"]
+    assert os_health["ok"] is True
+    assert os_health["last_error"] is None
     assert isinstance(os_health["hostname"], str)
     assert isinstance(os_health["os_version"], str)
     assert isinstance(os_health["kernel_version"], str)
     assert os_health["time_sync_ok"] in (True, False, None)
+
+    for module_name in ["ups", "esp32", "antsdr", "remoteid", "video"]:
+        _assert_placeholder(data["modules"][module_name])
 
 
 def test_ws_hello():
