@@ -178,7 +178,7 @@ class DeepHealth(BaseModel):
 
 
 class CommandRequest(BaseModel):
-    timestamp_ms: int
+    timestamp_ms: Optional[int] = None
     command: str
     confirm: Optional[bool] = False
     payload: Optional[Dict[str, Any]] = None

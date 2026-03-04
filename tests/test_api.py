@@ -136,6 +136,12 @@ def _assert_placeholder(module_obj):
     assert module_obj["last_error"] == "not_implemented"
 
 
+def _assert_esp32_missing(module_obj):
+    assert module_obj["ok"] is False
+    assert module_obj["connected"] is False
+    assert module_obj["last_error"] == "ESP32_SERIAL_NOT_CONNECTED"
+
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -165,7 +171,9 @@ def test_status_shape():
 
     _assert_ups_values(data["modules"]["ups"])
 
-    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
+    _assert_esp32_missing(data["modules"]["esp32"])
+
+    for module_name in ["antsdr", "remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 
@@ -190,7 +198,12 @@ def test_health_shape():
     assert ups_health["comms_ok"] is True
     assert ups_health["model"] == "Waveshare UPS HAT (E)"
 
-    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
+    esp32_health = data["modules"]["esp32"]
+    assert esp32_health["ok"] is False
+    assert esp32_health["comms_ok"] is False
+    assert esp32_health["last_error"] == "ESP32_SERIAL_NOT_CONNECTED"
+
+    for module_name in ["antsdr", "remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 

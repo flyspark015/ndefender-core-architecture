@@ -182,12 +182,23 @@ def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
 
 
 def _check_placeholders(modules: Dict[str, Any]) -> Tuple[bool, str]:
-    for module_name in ["esp32", "antsdr", "remoteid", "video"]:
+    for module_name in ["antsdr", "remoteid", "video"]:
         mod = modules.get(module_name, {})
         if mod.get("ok") is not False:
             return False, f"{module_name}_ok_not_false"
         if mod.get("last_error") != "not_implemented":
             return False, f"{module_name}_last_error_not_not_implemented"
+    return True, "ok"
+
+
+def _check_esp32_missing(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    esp32 = status_obj.get("modules", {}).get("esp32", {})
+    if esp32.get("ok") is not False:
+        return False, "esp32_ok_not_false"
+    if esp32.get("connected") is not False:
+        return False, "esp32_connected_not_false"
+    if esp32.get("last_error") != "ESP32_SERIAL_NOT_CONNECTED":
+        return False, "esp32_last_error_not_expected"
     return True, "ok"
 
 
@@ -227,6 +238,17 @@ def _check_os_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "os_health_kernel_version_not_string"
     if os_module.get("time_sync_ok") not in (True, False, None):
         return False, "os_health_time_sync_invalid"
+    return True, "ok"
+
+
+def _check_esp32_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    esp32 = health_obj.get("modules", {}).get("esp32", {})
+    if esp32.get("ok") is not False:
+        return False, "esp32_health_ok_not_false"
+    if esp32.get("comms_ok") is not False:
+        return False, "esp32_health_comms_not_false"
+    if esp32.get("last_error") != "ESP32_SERIAL_NOT_CONNECTED":
+        return False, "esp32_health_last_error_not_expected"
     return True, "ok"
 
 
@@ -276,6 +298,9 @@ def run() -> int:
             ok, detail = _check_ups_populated(status_json)
             results.append(("ups_populated", ok, detail))
 
+            ok, detail = _check_esp32_missing(status_json)
+            results.append(("esp32_missing", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
@@ -298,12 +323,16 @@ def run() -> int:
             ok, detail = _check_ups_health(health_json)
             results.append(("ups_health", ok, detail))
 
+            ok, detail = _check_esp32_health(health_json)
+            results.append(("esp32_health", ok, detail))
+
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))
         except Exception as exc:
             results.append(("health_keys", False, f"error={exc}"))
             results.append(("os_health", False, f"error={exc}"))
             results.append(("ups_health", False, f"error={exc}"))
+            results.append(("esp32_health", False, f"error={exc}"))
             results.append(("placeholders_health", False, f"error={exc}"))
 
         try:
