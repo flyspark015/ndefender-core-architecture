@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import glob
 import json
+import logging
 import time
 from threading import Lock
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import serial
 from serial import SerialException
@@ -13,6 +15,21 @@ from app.models import Esp32Health, Esp32Status, now_ms
 
 class Esp32NotConnected(Exception):
     pass
+
+
+AUTO_HINTS = [
+    "CP210",
+    "CH340",
+    "USB",
+    "UART",
+    "Silicon_Labs",
+    "wch",
+]
+
+
+def _matches_hint(path: str) -> bool:
+    lower = path.lower()
+    return any(hint.lower() in lower for hint in AUTO_HINTS)
 
 
 def _first_value(data: Dict[str, Any], *keys: str) -> Optional[Any]:
@@ -37,8 +54,8 @@ def _mv_to_v(value: Any) -> Optional[float]:
 
 
 class Esp32SerialReader:
-    def __init__(self, ports: Iterable[str], baud: int, read_timeout_s: float, reconnect_s: float) -> None:
-        self._ports = [p for p in ports if p]
+    def __init__(self, port_setting: str, baud: int, read_timeout_s: float, reconnect_s: float) -> None:
+        self._port_setting = port_setting or "auto"
         self._baud = baud
         self._read_timeout_s = read_timeout_s
         self._reconnect_s = reconnect_s
@@ -50,15 +67,54 @@ class Esp32SerialReader:
         self._firmware_version: Optional[str] = None
         self._supply_voltage_v: Optional[float] = None
         self._temperature_c: Optional[float] = None
+        self._logger = logging.getLogger("ndefender.esp32")
+        self._last_log_s: float = 0.0
+
+    def _log_throttled(self, message: str) -> None:
+        now = time.monotonic()
+        if now - self._last_log_s >= 10.0:
+            self._logger.warning(message)
+            self._last_log_s = now
+
+    def _resolve_ports(self) -> list[str]:
+        setting = (self._port_setting or "auto").strip()
+        if setting and setting.lower() not in ("auto", "none"):
+            return [setting]
+
+        by_id = sorted(glob.glob("/dev/serial/by-id/*"))
+        matches = [path for path in by_id if _matches_hint(path)]
+        if matches:
+            return matches
+
+        acm = sorted(glob.glob("/dev/ttyACM*"))
+        if acm:
+            return acm
+
+        usb = sorted(glob.glob("/dev/ttyUSB*"))
+        if usb:
+            return usb
+
+        return []
 
     def _open_serial(self) -> bool:
-        for port in self._ports:
+        ports = self._resolve_ports()
+        if not ports:
+            self._log_throttled("esp32 serial: no ports found for auto detection")
+            self._serial = None
+            self._connected = False
+            self._last_error = "ESP32_SERIAL_NOT_CONNECTED"
+            return False
+
+        self._log_throttled(f"esp32 serial candidates: {ports}")
+        for port in ports:
             try:
                 self._serial = serial.Serial(port, self._baud, timeout=self._read_timeout_s)
-                self._connected = False
-                self._last_error = "ESP32_SERIAL_NOT_CONNECTED"
+                self._connected = True
+                self._last_error = None
+                self._logger.info("esp32 serial connected port=%s", port)
                 return True
-            except SerialException:
+            except SerialException as exc:
+                self._log_throttled(f"esp32 serial open failed port={port} error={exc}")
                 continue
         self._serial = None
         self._connected = False

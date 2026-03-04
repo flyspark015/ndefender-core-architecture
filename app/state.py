@@ -9,7 +9,7 @@ import os
 
 from .config import (
     ESP32_BAUD,
-    ESP32_PORTS,
+    ESP32_PORT,
     ESP32_READ_TIMEOUT_S,
     ESP32_RECONNECT_S,
     UPS_POLL_INTERVAL_S,
@@ -102,7 +102,7 @@ class StateStore:
         self._ups_thread.start()
 
         self._esp32_reader = Esp32SerialReader(
-            ports=ESP32_PORTS,
+            port_setting=ESP32_PORT,
             baud=ESP32_BAUD,
             read_timeout_s=ESP32_READ_TIMEOUT_S,
             reconnect_s=ESP32_RECONNECT_S,

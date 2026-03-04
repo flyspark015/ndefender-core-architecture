@@ -252,3 +252,43 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 {"detail":"precondition_failed","code":"ESP32_SERIAL_NOT_CONNECTED"}
 HTTP_STATUS:409
 ```
+
+## Phase C.3.1 — ESP32 Auto Port Detect
+### BEFORE
+```
+BYID []
+ACM []
+USB []
+```
+
+### CHANGE
+- Added ESP32 auto port detection (by-id -> ttyACM -> ttyUSB)
+- Added throttled logging for port selection/failures
+- Added tests for auto-detect preference
+
+### AFTER (proof)
+- `pytest -q`
+```
+7 passed, 2 warnings in 1.64s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
+```
+- `curl -sS http://127.0.0.1:8000/api/v1/status | jq '.modules.esp32'`
+```
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "ESP32_SERIAL_NOT_CONNECTED",
+  "connected": false,
+  "firmware_version": null,
+  "rssi_dbm": null,
+  "supply_voltage_v": null,
+  "temperature_c": null
+}
+```
+
+### Future Firmware Update (not implemented)
+- Preferred: `esptool.py` or PlatformIO
+- Firmware repo: `ndefender-esp32` (external, not in this repo)
