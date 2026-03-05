@@ -48,6 +48,8 @@ STATUS_FIELDS = {
         "last_error",
         "connected",
         "firmware_version",
+        "device_uptime_ms",
+        "seq",
         "rssi_dbm",
         "supply_voltage_v",
         "temperature_c",
@@ -141,6 +143,8 @@ def _assert_esp32_missing(module_obj):
     assert module_obj["ok"] is False
     assert module_obj["connected"] is False
     assert module_obj["last_error"] == "ESP32_SERIAL_NOT_CONNECTED"
+    assert module_obj["device_uptime_ms"] is None
+    assert module_obj["seq"] is None
 
 
 def _assert_ups_values(ups_obj):

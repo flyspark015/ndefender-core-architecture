@@ -65,6 +65,8 @@ class Esp32SerialReader:
         self._last_error: Optional[str] = "ESP32_SERIAL_NOT_CONNECTED"
         self._connected = False
         self._firmware_version: Optional[str] = None
+        self._device_uptime_ms: Optional[int] = None
+        self._seq: Optional[int] = None
         self._supply_voltage_v: Optional[float] = None
         self._temperature_c: Optional[float] = None
         self._logger = logging.getLogger("ndefender.esp32")
@@ -111,6 +113,8 @@ class Esp32SerialReader:
                 self._serial = serial.Serial(port, self._baud, timeout=self._read_timeout_s)
                 self._connected = True
                 self._last_error = None
+                if self._last_update_ms is None:
+                    self._last_update_ms = now_ms()
                 self._logger.info("esp32 serial connected port=%s", port)
                 return True
             except SerialException as exc:
@@ -137,6 +141,8 @@ class Esp32SerialReader:
             last_update_ms=self._last_update_ms,
             last_error="ESP32_SERIAL_NOT_CONNECTED",
             firmware_version=self._firmware_version,
+            device_uptime_ms=self._device_uptime_ms,
+            seq=self._seq,
             supply_voltage_v=self._supply_voltage_v,
             temperature_c=self._temperature_c,
         )
@@ -155,6 +161,8 @@ class Esp32SerialReader:
             last_update_ms=self._last_update_ms,
             last_error=self._last_error,
             firmware_version=self._firmware_version,
+            device_uptime_ms=self._device_uptime_ms,
+            seq=self._seq,
             supply_voltage_v=self._supply_voltage_v,
             temperature_c=self._temperature_c,
         )
@@ -168,9 +176,16 @@ class Esp32SerialReader:
         )
 
     def _handle_telemetry(self, data: Dict[str, Any]) -> None:
-        fw = _first_value(data, "firmware_version", "fw")
+        fw = _first_value(data, "firmware_version", "fw_version", "fw")
         if fw:
             self._firmware_version = str(fw)
+
+        seq = _first_value(data, "seq")
+        if seq is not None:
+            try:
+                self._seq = int(seq)
+            except Exception:
+                self._seq = None
 
         supply_v = _first_value(data, "supply_voltage_v")
         if supply_v is None:
@@ -182,17 +197,28 @@ class Esp32SerialReader:
         if temp_c is not None:
             self._temperature_c = _to_float(temp_c)
 
-        ts = _first_value(data, "ts_ms", "timestamp_ms")
-        if ts is None:
-            self._last_update_ms = now_ms()
-        else:
+        device_ts = _first_value(data, "timestamp_ms", "ts_ms", "uptime_ms")
+        if device_ts is not None:
             try:
-                self._last_update_ms = int(ts)
+                self._device_uptime_ms = int(device_ts)
             except Exception:
-                self._last_update_ms = now_ms()
+                self._device_uptime_ms = None
+
+        self._last_update_ms = now_ms()
 
         self._connected = True
         self._last_error = None
+        return {
+            "device_uptime_ms": self._device_uptime_ms,
+            "seq": self._seq,
+            "fw_version": self._firmware_version,
+            "sel": data.get("sel"),
+            "vrx": data.get("vrx"),
+            "video": data.get("video"),
+            "led": data.get("led"),
+            "sys": data.get("sys"),
+            "raw": data,
+        }
 
     def send_command(self, command: str, payload: Dict[str, Any], timestamp_ms: int) -> None:
         with self._lock:
@@ -230,9 +256,10 @@ class Esp32SerialReader:
                     data = json.loads(decoded)
                     if isinstance(data, dict):
                         if data.get("type") == "telemetry" or "type" not in data:
-                            self._handle_telemetry(data)
+                            payload = self._handle_telemetry(data)
                             on_update(self._build_status(), self._build_health())
-                            on_telemetry(data)
+                            if payload:
+                                on_telemetry(payload)
                 except json.JSONDecodeError:
                     self._last_error = "esp32_parse_error"
                 except Exception:

@@ -64,3 +64,21 @@ def test_command_ack_when_serial_missing():
         assert ack["data"]["ok"] is False
         assert ack["data"]["code"] == "ESP32_SERIAL_NOT_CONNECTED"
         assert isinstance(ack["data"]["timestamp_ms"], int)
+
+
+def test_telemetry_updates_epoch_timestamp_and_fw():
+    reader = Esp32SerialReader("auto", 115200, 0.1, 0.1)
+    telemetry = {
+        "type": "telemetry",
+        "timestamp_ms": 12345,
+        "seq": 26,
+        "fw_version": "0.3.0",
+    }
+    payload = reader._handle_telemetry(telemetry)
+    status = reader._build_status()
+    assert payload["fw_version"] == "0.3.0"
+    assert status.firmware_version == "0.3.0"
+    assert status.device_uptime_ms == 12345
+    assert status.seq == 26
+    assert isinstance(status.last_update_ms, int)
+    assert status.last_update_ms >= 1_600_000_000_000

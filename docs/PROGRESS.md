@@ -544,3 +544,80 @@ GATES (post-fix):
 SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ```
 - Unplug charger 10s then replug; capture before/after UPS fields.
+
+## Phase C.3 — ESP32 Correctness + WS Events
+### BEFORE
+- `/api/v1/status` showed `firmware_version: null`
+- `last_update_ms` reflected device uptime (not epoch ms)
+
+### CHANGE
+- `esp32.last_update_ms` now set to backend epoch ms on telemetry
+- Preserve device uptime separately as `device_uptime_ms`
+- Map `fw_version` -> `firmware_version`, store `seq`
+- Emit WS `TELEMETRY_UPDATE` + `COMMAND_ACK` with epoch `timestamp_ms`
+
+### AFTER (proof)
+- `systemctl status ndefender-unified --no-pager`
+```
+● ndefender-unified.service - N-Defender Unified Backend (FastAPI)
+     Loaded: loaded (/etc/systemd/system/ndefender-unified.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-03-06 02:52:50 IST; 11s ago
+   Main PID: 18850 (python)
+      Tasks: 5 (limit: 19359)
+        CPU: 614ms
+     CGroup: /system.slice/ndefender-unified.service
+             └─18850 /home/toybook/ndefender-unified-backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Mar 06 02:52:50 ndefender-pi python[18850]: INFO:     Waiting for application startup.
+Mar 06 02:52:50 ndefender-pi python[18850]: INFO:     Application startup complete.
+Mar 06 02:52:50 ndefender-pi python[18850]: esp32 serial candidates: ['/dev/serial/by-id/usb-1a86_USB_Single_Serial_58FB009763-if00']
+Mar 06 02:52:50 ndefender-pi python[18850]: INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     127.0.0.1:38056 - "GET /api/v1/status HTTP/1.1" 200 OK
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     127.0.0.1:38056 - "GET /api/v1/health HTTP/1.1" 200 OK
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     127.0.0.1:38056 - "GET /api/v1/contacts HTTP/1.1" 200 OK
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     127.0.0.1:38064 - "WebSocket /api/v1/ws" [accepted]
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     connection open
+Mar 06 02:52:56 ndefender-pi python[18850]: INFO:     connection closed
+```
+
+- `/api/v1/status .modules.esp32`
+```
+{
+  "ok": true,
+  "last_update_ms": 1772745785728,
+  "last_error": null,
+  "connected": true,
+  "firmware_version": "0.3.0",
+  "device_uptime_ms": 265363,
+  "seq": 266,
+  "rssi_dbm": null,
+  "supply_voltage_v": null,
+  "temperature_c": null
+}
+```
+- `/api/v1/health .modules.esp32`
+```
+{
+  "ok": true,
+  "last_update_ms": 1772745788729,
+  "last_error": null,
+  "comms_ok": true
+}
+```
+
+- WS proof (HELLO + TELEMETRY_UPDATE + COMMAND_ACK):
+```
+HELLO {'type': 'HELLO', 'timestamp_ms': 1772745796062, 'source': 'core', 'data': {}}
+TELEMETRY_UPDATE {'type': 'TELEMETRY_UPDATE', 'timestamp_ms': 1772745796729, 'source': 'esp32', 'data': {'device_uptime_ms': 276363, 'seq': 277, 'fw_version': '0.3.0', 'sel': 1, 'vrx': [{'id': 1, 'freq_hz': 5740000000, 'rssi_raw': 1013}, {'id': 2, 'freq_hz': 5800000000, 'rssi_raw': 415}, {'id': 3, 'freq_hz': 5860000000, 'rssi_raw': 181}], 'video': {'selected': 1}, 'led': {'r': 0, 'y': 0, 'g': 1}, 'sys': {'uptime_ms': 276363, 'heap': 337544}, 'raw': {'type': 'telemetry', 'timestamp_ms': 276363, 'seq': 277, 'fw_version': '0.3.0', 'sel': 1, 'vrx': [{'id': 1, 'freq_hz': 5740000000, 'rssi_raw': 1013}, {'id': 2, 'freq_hz': 5800000000, 'rssi_raw': 415}, {'id': 3, 'freq_hz': 5860000000, 'rssi_raw': 181}], 'video': {'selected': 1}, 'led': {'r': 0, 'y': 0, 'g': 1}, 'sys': {'uptime_ms': 276363, 'heap': 337544}}}}
+COMMAND_POST 200 {"ok":true}
+COMMAND_ACK {'type': 'COMMAND_ACK', 'timestamp_ms': 1772745797735, 'source': 'esp32', 'data': {'command': 'video/select', 'ok': True, 'code': 'OK', 'detail': 'ok', 'timestamp_ms': 1772745796811}}
+```
+
+- `pytest -q`
+```
+10 passed, 2 warnings in 1.72s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
+```

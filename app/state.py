@@ -129,17 +129,13 @@ class StateStore:
                 self.modules_health.esp32 = health
 
         def _telemetry(data) -> None:
-            payload: Dict[str, Any] = {}
+            payload: Dict[str, Any]
             if isinstance(data, dict):
-                if "sel" in data:
-                    payload["sel"] = data.get("sel")
-                if "vrx" in data:
-                    payload["vrx"] = data.get("vrx")
-                if "ts_ms" in data:
-                    payload["ts_ms"] = data.get("ts_ms")
-                payload["raw"] = data
+                payload = dict(data)
+                if "raw" not in payload:
+                    payload["raw"] = data
             else:
-                payload["raw"] = data
+                payload = {"raw": data}
 
             event = EventEnvelope(
                 type="TELEMETRY_UPDATE",

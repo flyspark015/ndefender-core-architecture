@@ -60,6 +60,8 @@ STATUS_FIELDS = {
         "last_error",
         "connected",
         "firmware_version",
+        "device_uptime_ms",
+        "seq",
         "rssi_dbm",
         "supply_voltage_v",
         "temperature_c",
@@ -192,8 +194,26 @@ def _check_placeholders(modules: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "ok"
 
 
-def _check_esp32_missing(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+def _check_esp32_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
     esp32 = status_obj.get("modules", {}).get("esp32", {})
+    if esp32.get("ok") is True:
+        if esp32.get("connected") is not True:
+            return False, "esp32_connected_not_true"
+        if esp32.get("last_error") is not None:
+            return False, "esp32_last_error_not_null"
+        if not isinstance(esp32.get("firmware_version"), str):
+            return False, "esp32_fw_not_string"
+        if not isinstance(esp32.get("last_update_ms"), int):
+            return False, "esp32_last_update_not_int"
+        if esp32.get("last_update_ms") < 1_600_000_000_000:
+            return False, "esp32_last_update_not_epoch"
+        if esp32.get("device_uptime_ms") is not None and not isinstance(
+            esp32.get("device_uptime_ms"), int
+        ):
+            return False, "esp32_device_uptime_not_int"
+        if esp32.get("seq") is not None and not isinstance(esp32.get("seq"), int):
+            return False, "esp32_seq_not_int"
+        return True, "ok"
     if esp32.get("ok") is not False:
         return False, "esp32_ok_not_false"
     if esp32.get("connected") is not False:
@@ -249,6 +269,16 @@ def _check_os_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
 
 def _check_esp32_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     esp32 = health_obj.get("modules", {}).get("esp32", {})
+    if esp32.get("ok") is True:
+        if esp32.get("comms_ok") is not True:
+            return False, "esp32_health_comms_not_true"
+        if esp32.get("last_error") is not None:
+            return False, "esp32_health_last_error_not_null"
+        if not isinstance(esp32.get("last_update_ms"), int):
+            return False, "esp32_health_last_update_not_int"
+        if esp32.get("last_update_ms") < 1_600_000_000_000:
+            return False, "esp32_health_last_update_not_epoch"
+        return True, "ok"
     if esp32.get("ok") is not False:
         return False, "esp32_health_ok_not_false"
     if esp32.get("comms_ok") is not False:
@@ -307,8 +337,8 @@ def run() -> int:
             ok, detail = _check_ups_populated(status_json)
             results.append(("ups_populated", ok, detail))
 
-            ok, detail = _check_esp32_missing(status_json)
-            results.append(("esp32_missing", ok, detail))
+            ok, detail = _check_esp32_status(status_json)
+            results.append(("esp32_status", ok, detail))
 
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))

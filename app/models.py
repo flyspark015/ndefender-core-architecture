@@ -79,6 +79,8 @@ class Esp32Status(BaseModel):
     last_error: Optional[str] = None
     connected: Optional[bool] = None
     firmware_version: Optional[str] = None
+    device_uptime_ms: Optional[int] = None
+    seq: Optional[int] = None
     rssi_dbm: Optional[float] = None
     supply_voltage_v: Optional[float] = None
     temperature_c: Optional[float] = None
