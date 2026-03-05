@@ -168,6 +168,97 @@ Change:
 - ESP32 status/health now report deterministic "ESP32_SERIAL_NOT_CONNECTED" when missing
 - Evidence/tests updated to assert ESP32 missing state
 
+### STEP 0 — BEFORE (2026-03-05)
+1) /dev/serial/by-id:
+```
+(none)
+```
+
+2) /dev/ttyACM* /dev/ttyUSB*:
+```
+(none)
+```
+
+3) dmesg tail filter:
+```
+(no matching tty/usb lines)
+```
+
+4) systemctl status:
+```
+● ndefender-unified.service - N-Defender Unified Backend (FastAPI)
+     Loaded: loaded (/etc/systemd/system/ndefender-unified.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-03-05 09:23:18 IST; 1h 24min ago
+   Main PID: 9179 (python)
+      Tasks: 5 (limit: 19359)
+        CPU: 7.813s
+     CGroup: /system.slice/ndefender-unified.service
+             └─9179 /home/toybook/ndefender-unified-backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Mar 05 10:47:03 ndefender-pi python[9179]: esp32 serial: no ports found for auto detection
+Mar 05 10:47:13 ndefender-pi python[9179]: esp32 serial: no ports found for auto detection
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     127.0.0.1:47138 - "GET /api/v1/status HTTP/1.1" 200 OK
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     127.0.0.1:47138 - "GET /api/v1/health HTTP/1.1" 200 OK
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     127.0.0.1:47138 - "GET /api/v1/contacts HTTP/1.1" 200 OK
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     127.0.0.1:47152 - "WebSocket /api/v1/ws" [accepted]
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     connection open
+Mar 05 10:47:16 ndefender-pi python[9179]: INFO:     connection closed
+Mar 05 10:47:23 ndefender-pi python[9179]: esp32 serial: no ports found for auto detection
+Mar 05 10:47:33 ndefender-pi python[9179]: esp32 serial: no ports found for auto detection
+```
+
+5) /api/v1/status .modules.esp32:
+```
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "ESP32_SERIAL_NOT_CONNECTED",
+  "connected": false,
+  "firmware_version": null,
+  "rssi_dbm": null,
+  "supply_voltage_v": null,
+  "temperature_c": null
+}
+```
+
+### STEP 4 — AFTER (2026-03-05)
+GATES:
+- `pytest -q`
+```
+9 passed, 2 warnings in 0.49s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
+```
+
+Status/health snippets:
+- `/api/v1/status .modules.esp32`
+```
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "ESP32_SERIAL_NOT_CONNECTED",
+  "connected": false,
+  "firmware_version": null,
+  "rssi_dbm": null,
+  "supply_voltage_v": null,
+  "temperature_c": null
+}
+```
+- `/api/v1/health .modules.esp32`
+```
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "ESP32_SERIAL_NOT_CONNECTED",
+  "comms_ok": false
+}
+```
+
+NOTE:
+- ESP32 not connected; command/WS proof not applicable in this run.
+
 After (proof):
 - `pytest -q`
 ```
