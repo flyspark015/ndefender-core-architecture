@@ -295,3 +295,15 @@ def test_ws_hello():
         data = ws.receive_json()
         assert set(["type", "timestamp_ms", "source", "data"]).issubset(data.keys())
         assert data["type"] == "HELLO"
+
+
+def test_contacts_shape():
+    r = client.get("/api/v1/contacts")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    if data:
+        contact = data[0]
+        assert "contact_id" in contact
+        assert "type" in contact
+        assert "last_seen_ms" in contact

@@ -284,7 +284,7 @@ class StateStore:
 
     def contacts_snapshot(self) -> Dict[str, Any]:
         with self._lock:
-            return {"contacts": list(self.contacts)}
+            return list(self.contacts)
 
 
 STATE = StateStore()

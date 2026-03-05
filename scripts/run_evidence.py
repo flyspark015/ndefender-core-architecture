@@ -536,7 +536,11 @@ def run() -> int:
 
         try:
             r = client.get(f"{BASE_URL}/api/v1/contacts")
-            ok, detail = _check_keys(r.json(), ["contacts"])
+            data = r.json()
+            if isinstance(data, list):
+                ok, detail = True, "ok"
+            else:
+                ok, detail = False, "contacts_not_list"
             results.append(("contacts_keys", ok, detail))
         except Exception as exc:
             results.append(("contacts_keys", False, f"error={exc}"))

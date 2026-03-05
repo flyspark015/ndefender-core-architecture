@@ -89,7 +89,8 @@ class RemoteIdIngestor:
             return False
         try:
             self._file = open(self._path, "r", encoding="utf-8")
-            self._file_pos = 0
+            self._file.seek(0, os.SEEK_END)
+            self._file_pos = self._file.tell()
             self._input_ok = True
             self._last_error = "REMOTEID_NO_DATA"
             return True

@@ -274,6 +274,52 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ### AFTER
 - Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE D.1 STEP 3 GATES**.
 
+## Phase D.2 — Contacts Endpoint Shape
+### BEFORE
+- `curl -sS http://127.0.0.1:8000/api/v1/contacts | head -c 400`
+```
+{"contacts":[]}
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
+```
+
+### CHANGE
+- `/api/v1/contacts` now returns a JSON array directly (no envelope).
+- Evidence/test checks updated to expect list.
+
+### AFTER
+- `pytest -q`
+```
+19 passed, 2 warnings in 0.52s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
+```
+- `curl -sS http://127.0.0.1:8000/api/v1/contacts | jq '.[0:3]'`
+```
+[
+  {
+    "contact_id": "fusion:drone_test_3",
+    "type": "remoteid",
+    "remoteid_id": "drone_test_3",
+    "rf_sources": [],
+    "video_sources": [
+      "esp32"
+    ],
+    "first_seen_ms": 1772748488501,
+    "last_seen_ms": 1772748501726,
+    "threat_score": 2
+  }
+]
+```
+- `curl -sS http://127.0.0.1:8000/api/v1/status | jq '.modules.fusion.active_contacts'`
+```
+1
+```
+
 Status/health snippets:
 - `/api/v1/status .modules.esp32`
 ```
