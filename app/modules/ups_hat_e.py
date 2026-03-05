@@ -118,6 +118,11 @@ class UpsHatEReader:
             ts = now_ms()
             self._last_update_ms = ts
 
+            if reading.vbus_voltage_mv is None:
+                on_battery = None
+            else:
+                on_battery = (reading.vbus_voltage_mv / 1000.0) <= 1.0
+
             status = UpsStatus(
                 ok=True,
                 last_update_ms=ts,
@@ -125,6 +130,7 @@ class UpsHatEReader:
                 battery_percent=reading.battery_percent,
                 battery_voltage_v=reading.battery_voltage_mv / 1000.0,
                 battery_current_a=reading.battery_current_ma / 1000.0,
+                current_a=reading.battery_current_ma / 1000.0,
                 remaining_capacity_mah=reading.remaining_capacity_mah,
                 runtime_s=reading.runtime_min * 60.0,
                 cell_voltages_v=[v / 1000.0 for v in reading.cell_voltages_mv],
@@ -132,6 +138,9 @@ class UpsHatEReader:
                 vbus_current_a=reading.vbus_current_ma / 1000.0,
                 vbus_power_w=reading.vbus_power_mw / 1000.0,
                 state=reading.state,
+                input_voltage_v=reading.vbus_voltage_mv / 1000.0,
+                output_voltage_v=reading.battery_voltage_mv / 1000.0,
+                on_battery=on_battery,
             )
 
             health = UpsHealth(
@@ -144,7 +153,7 @@ class UpsHatEReader:
             return status, health
         except Exception as exc:  # pragma: no cover - exercised in integration
             ts = self._last_update_ms or now_ms()
-            err = f"ups_i2c_error:{exc}"
+            err = _classify_error(exc)
             status = UpsStatus(
                 ok=False,
                 last_update_ms=ts,
@@ -152,6 +161,7 @@ class UpsHatEReader:
                 battery_percent=None,
                 battery_voltage_v=None,
                 battery_current_a=None,
+                current_a=None,
                 remaining_capacity_mah=None,
                 runtime_s=None,
                 cell_voltages_v=None,
@@ -159,6 +169,9 @@ class UpsHatEReader:
                 vbus_current_a=None,
                 vbus_power_w=None,
                 state="unknown",
+                input_voltage_v=None,
+                output_voltage_v=None,
+                on_battery=None,
             )
             health = UpsHealth(
                 ok=False,
@@ -168,6 +181,13 @@ class UpsHatEReader:
                 model="Waveshare UPS HAT (E)",
             )
             return status, health
+
+
+def _classify_error(exc: Exception) -> str:
+    if isinstance(exc, OSError):
+        if getattr(exc, "errno", None) in (2, 5, 6, 121):
+            return "UPS_NOT_DETECTED"
+    return f"UPS_READ_FAILED:{exc}"
 
 
 class FakeUpsHatEReader(UpsHatEReader):

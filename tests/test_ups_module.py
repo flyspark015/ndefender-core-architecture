@@ -45,6 +45,7 @@ def test_ups_hat_e_reader(monkeypatch):
     assert status.last_error is None
     assert status.battery_voltage_v == 16.4
     assert status.battery_current_a == -0.5
+    assert status.current_a == -0.5
     assert status.battery_percent == 85.0
     assert status.remaining_capacity_mah == 4000.0
     assert status.runtime_s == 7200.0
@@ -53,7 +54,47 @@ def test_ups_hat_e_reader(monkeypatch):
     assert status.vbus_current_a == 1.8
     assert status.vbus_power_w == 27.0
     assert status.state == "discharging"
+    assert status.input_voltage_v == 15.0
+    assert status.output_voltage_v == 16.4
+    assert status.on_battery is False
 
     assert health.ok is True
     assert health.comms_ok is True
     assert health.model == "Waveshare UPS HAT (E)"
+
+
+def test_ups_not_detected(monkeypatch):
+    class BoomBus:
+        def read_i2c_block_data(self, addr, register, length):
+            raise OSError(121, "Remote I/O error")
+
+    class BoomSmbus:
+        def SMBus(self, bus_id):
+            return BoomBus()
+
+    monkeypatch.setattr("app.modules.ups_hat_e._import_smbus", lambda: BoomSmbus())
+    reader = UpsHatEReader()
+    status, health = reader.poll()
+    assert status.ok is False
+    assert status.last_error == "UPS_NOT_DETECTED"
+    assert health.ok is False
+    assert health.last_error == "UPS_NOT_DETECTED"
+
+
+def test_ups_on_battery_by_vbus(monkeypatch):
+    class ZeroVbusBus(FakeBus):
+        def read_i2c_block_data(self, addr, register, length):
+            if register == 0x10:
+                # vbus voltage 0mV, current 0mA, power 0mW
+                return [0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            return super().read_i2c_block_data(addr, register, length)
+
+    class ZeroVbusSmbusModule:
+        def SMBus(self, bus_id):
+            return ZeroVbusBus()
+
+    monkeypatch.setattr("app.modules.ups_hat_e._import_smbus", lambda: ZeroVbusSmbusModule())
+    reader = UpsHatEReader()
+    status, _ = reader.poll()
+    assert status.vbus_voltage_v == 0.0
+    assert status.on_battery is True

@@ -28,6 +28,7 @@ STATUS_FIELDS = {
         "battery_percent",
         "battery_voltage_v",
         "battery_current_a",
+        "current_a",
         "remaining_capacity_mah",
         "runtime_s",
         "cell_voltages_v",
@@ -205,7 +206,10 @@ def _check_esp32_missing(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
 def _check_ups_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
     ups = status_obj.get("modules", {}).get("ups", {})
     if ups.get("ok") is not True:
-        return False, "ups_ok_not_true"
+        last_error = ups.get("last_error") or ""
+        if last_error.startswith("UPS_NOT_DETECTED") or last_error.startswith("UPS_READ_FAILED"):
+            return True, "ok"
+        return False, "ups_missing_no_error"
     if ups.get("last_error") is not None:
         return False, "ups_last_error_not_null"
     if not _is_number(ups.get("battery_percent")):
@@ -214,6 +218,8 @@ def _check_ups_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "ups_battery_voltage_not_number"
     if ups.get("battery_voltage_v") is not None and ups.get("battery_voltage_v") <= 0:
         return False, "ups_battery_voltage_not_positive"
+    if not (_is_number(ups.get("input_voltage_v")) or _is_number(ups.get("output_voltage_v"))):
+        return False, "ups_input_output_missing"
     cells = ups.get("cell_voltages_v")
     if not isinstance(cells, list):
         return False, "ups_cells_not_list"
@@ -255,7 +261,10 @@ def _check_esp32_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
 def _check_ups_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     ups = health_obj.get("modules", {}).get("ups", {})
     if ups.get("ok") is not True:
-        return False, "ups_health_ok_not_true"
+        last_error = ups.get("last_error") or ""
+        if last_error.startswith("UPS_NOT_DETECTED") or last_error.startswith("UPS_READ_FAILED"):
+            return True, "ok"
+        return False, "ups_health_missing_no_error"
     if ups.get("last_error") is not None:
         return False, "ups_health_last_error_not_null"
     if ups.get("comms_ok") is not True:

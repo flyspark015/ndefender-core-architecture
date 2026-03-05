@@ -292,3 +292,164 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ### Future Firmware Update (not implemented)
 - Preferred: `esptool.py` or PlatformIO
 - Firmware repo: `ndefender-esp32` (external, not in this repo)
+
+## Phase C.4 — UPS HAT (E) Real Hardware
+### STEP 0 — BEFORE
+1) /dev/i2c*:
+```
+crw-rw---- 1 root i2c 89,  1 Mar  4 19:17 /dev/i2c-1
+crw-rw---- 1 root i2c 89, 13 Mar  4 19:17 /dev/i2c-13
+crw-rw---- 1 root i2c 89, 14 Mar  4 19:17 /dev/i2c-14
+```
+
+2) i2cdetect -y 1:
+```
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:                         -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- UU -- -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- 2d -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- -- -- -- --                         
+```
+
+3) tty devices:
+```
+(no /dev/ttyUSB*, /dev/ttyACM*, /dev/serial/by-id)
+```
+
+4) dmesg tail filter:
+```
+(systemd log noise; no explicit i2c/ups messages)
+```
+
+5) smbus2 import:
+```
+smbus2 ok
+```
+
+6) /api/v1/status UPS:
+```
+{
+  "ok": true,
+  "last_update_ms": 1772665765628,
+  "last_error": null,
+  "battery_percent": 98,
+  "battery_voltage_v": 16.71,
+  "battery_current_a": 0.023,
+  "remaining_capacity_mah": 4702,
+  "cell_voltages_v": [
+    4.178,
+    4.179,
+    4.174,
+    4.179
+  ],
+  "vbus_voltage_v": 15.011,
+  "vbus_current_a": 1.174,
+  "vbus_power_w": 16.512,
+  "state": "discharging",
+  "input_voltage_v": null,
+  "output_voltage_v": null,
+  "load_percent": null,
+  "temperature_c": null,
+  "runtime_s": 0,
+  "on_battery": null
+}
+```
+
+### STEP 1–4 — UPS Driver + Evidence Updates
+CHANGE:
+- Added UPS current_a + input/output voltage mapping from vbus/battery
+- Classified UPS errors as UPS_NOT_DETECTED / UPS_READ_FAILED
+- Evidence accepts explicit UPS missing; verifies input/output voltage when ok
+- Added unit test for UPS not detected
+
+AFTER (proof):
+- `pytest -q`
+```
+8 passed, 2 warnings in 0.48s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
+```
+- `/api/v1/status .modules.ups`
+```
+{
+  "ok": true,
+  "last_update_ms": 1772665911878,
+  "last_error": null,
+  "battery_percent": 98,
+  "battery_voltage_v": 16.712,
+  "battery_current_a": 0.025,
+  "current_a": 0.025,
+  "remaining_capacity_mah": 4702,
+  "cell_voltages_v": [
+    4.179,
+    4.179,
+    4.174,
+    4.18
+  ],
+  "vbus_voltage_v": 15.019,
+  "vbus_current_a": 1.008,
+  "vbus_power_w": 15.144,
+  "state": "discharging",
+  "input_voltage_v": 15.019,
+  "output_voltage_v": 16.712,
+  "load_percent": null,
+  "temperature_c": null,
+  "runtime_s": 0,
+  "on_battery": true
+}
+```
+- `/api/v1/health .modules.ups`
+```
+{
+  "ok": true,
+  "last_update_ms": 1772665911878,
+  "last_error": null,
+  "comms_ok": true,
+  "model": "Waveshare UPS HAT (E)",
+  "serial": null,
+  "firmware_version": null
+}
+```
+
+Manual RX test (charger unplug/replug):
+
+BEFORE (charger plugged):
+```
+{ "vbus_voltage_v": 15.013, "input_voltage_v": 15.013, "battery_voltage_v": 16.717, "state": "discharging", "on_battery": false, "battery_percent": 98, "last_update_ms": 1772684829439 }
+```
+
+UNPLUG (charger removed ~10s):
+```
+{ "vbus_voltage_v": 0, "input_voltage_v": 0, "battery_voltage_v": 16.574, "state": "idle", "on_battery": true, "battery_percent": 98, "last_update_ms": 1772684838463 }
+```
+
+(another unplug sample ok, optional):
+```
+{ "vbus_voltage_v": 0, "input_voltage_v": 0, "battery_voltage_v": 16.557, "state": "idle", "on_battery": true, "battery_percent": 98, "last_update_ms": 1772684841471 }
+```
+
+REPLUG (charger restored):
+```
+{ "vbus_voltage_v": 15.006, "input_voltage_v": 15.006, "battery_voltage_v": 16.705, "state": "discharging", "on_battery": false, "battery_percent": 98, "last_update_ms": 1772684853503 }
+```
+
+CHANGE:
+- `on_battery` computed ONLY from `vbus_voltage_v` (<=1.0 means on battery)
+- Do NOT use `state` to compute `on_battery` (state can be misleading)
+
+GATES (post-fix):
+- `pytest -q`
+```
+9 passed, 2 warnings in 1.65s
+```
+- `python3 scripts/run_evidence.py`
+```
+SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
+```
+- Unplug charger 10s then replug; capture before/after UPS fields.

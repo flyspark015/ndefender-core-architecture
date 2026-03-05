@@ -16,6 +16,7 @@ STATUS_FIELDS = {
         "battery_percent",
         "battery_voltage_v",
         "battery_current_a",
+        "current_a",
         "remaining_capacity_mah",
         "runtime_s",
         "cell_voltages_v",
@@ -148,6 +149,7 @@ def _assert_ups_values(ups_obj):
     assert _is_number(ups_obj["battery_percent"])
     assert _is_number(ups_obj["battery_voltage_v"])
     assert ups_obj["battery_voltage_v"] > 0
+    assert _is_number(ups_obj["input_voltage_v"]) or _is_number(ups_obj["output_voltage_v"])
     assert isinstance(ups_obj["cell_voltages_v"], list)
     assert len(ups_obj["cell_voltages_v"]) == 4
     assert all(_is_number(v) and v > 0 for v in ups_obj["cell_voltages_v"])

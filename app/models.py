@@ -25,6 +25,7 @@ class UpsStatus(BaseModel):
     battery_percent: Optional[float] = None
     battery_voltage_v: Optional[float] = None
     battery_current_a: Optional[float] = None
+    current_a: Optional[float] = None
     remaining_capacity_mah: Optional[float] = None
     cell_voltages_v: Optional[List[float]] = None
     vbus_voltage_v: Optional[float] = None
