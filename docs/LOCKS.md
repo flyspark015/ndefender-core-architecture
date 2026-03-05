@@ -5,3 +5,4 @@
 - 2026-02-28: Module OS locked
 - 2026-02-28: Module UPS locked
 - 2026-03-05: PHASE C.3 ESP32 module locked at commit c0f361a (tests pass, evidence FAIL=0)
+- 2026-03-05: Module UPS locked at commit d408eb1 (tests pass, evidence FAIL=0)
