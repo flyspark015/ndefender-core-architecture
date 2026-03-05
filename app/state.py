@@ -12,6 +12,8 @@ from .config import (
     ESP32_PORT,
     ESP32_READ_TIMEOUT_S,
     ESP32_RECONNECT_S,
+    ANTSDR_POLL_INTERVAL_S,
+    ANTSDR_URI,
     UPS_POLL_INTERVAL_S,
 )
 from .models import (
@@ -36,6 +38,7 @@ from .events import EVENT_HUB
 from .modules.os_module import read_os_health, read_os_status, status_to_system
 from .modules.ups_hat_e import FakeUpsHatEReader, UpsHatEReader
 from .modules.esp32 import Esp32SerialReader, Esp32NotConnected
+from .modules.antsdr import AntsdrReader
 
 
 def _default_status_modules() -> StatusModules:
@@ -43,7 +46,7 @@ def _default_status_modules() -> StatusModules:
         ups=UpsStatus(ok=False, last_error="ups_starting"),
         os=OsStatus(ok=False, last_error=None),
         esp32=Esp32Status(ok=False, connected=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
-        antsdr=AntsdrStatus(ok=False, last_error="not_implemented"),
+        antsdr=AntsdrStatus(ok=False, last_error="ANTSDR_NOT_CONNECTED"),
         remoteid=RemoteIdStatus(ok=False, last_error="not_implemented"),
         video=VideoStatus(ok=False, last_error="not_implemented"),
     )
@@ -54,7 +57,7 @@ def _default_health_modules() -> HealthModules:
         ups=UpsHealth(ok=False, last_error="ups_starting"),
         os=OsHealth(ok=False, last_error=None),
         esp32=Esp32Health(ok=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
-        antsdr=AntsdrHealth(ok=False, last_error="not_implemented"),
+        antsdr=AntsdrHealth(ok=False, last_error="ANTSDR_NOT_CONNECTED", device_present=False, driver_ok=False),
         remoteid=RemoteIdHealth(ok=False, last_error="not_implemented"),
         video=VideoHealth(ok=False, last_error="not_implemented"),
     )
@@ -76,6 +79,8 @@ class StateStore:
     _ups_thread: Thread | None = field(default=None, init=False, repr=False)
     _esp32_thread: Thread | None = field(default=None, init=False, repr=False)
     _esp32_reader: Esp32SerialReader | None = field(default=None, init=False, repr=False)
+    _antsdr_thread: Thread | None = field(default=None, init=False, repr=False)
+    _antsdr_reader: AntsdrReader | None = field(default=None, init=False, repr=False)
 
     def refresh_os(self) -> None:
         status = read_os_status()
@@ -114,6 +119,14 @@ class StateStore:
         self._esp32_thread = Thread(target=self._esp32_loop, args=(self._esp32_reader,), daemon=True)
         self._esp32_thread.start()
 
+        self._antsdr_reader = AntsdrReader(uri=ANTSDR_URI)
+        status, health = self._antsdr_reader.poll()
+        with self._lock:
+            self.modules_status.antsdr = status
+            self.modules_health.antsdr = health
+        self._antsdr_thread = Thread(target=self._antsdr_loop, args=(self._antsdr_reader,), daemon=True)
+        self._antsdr_thread.start()
+
     def _ups_loop(self, reader: UpsHatEReader) -> None:
         while not self._stop_event.is_set():
             status, health = reader.poll()
@@ -146,6 +159,14 @@ class StateStore:
             EVENT_HUB.publish(event.model_dump())
 
         reader.loop(self._stop_event, _update, _telemetry)
+
+    def _antsdr_loop(self, reader: AntsdrReader) -> None:
+        while not self._stop_event.is_set():
+            status, health = reader.poll()
+            with self._lock:
+                self.modules_status.antsdr = status
+                self.modules_health.antsdr = health
+            sleep(ANTSDR_POLL_INTERVAL_S)
 
     def esp32_connected(self) -> bool:
         with self._lock:

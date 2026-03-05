@@ -147,6 +147,16 @@ def _assert_esp32_missing(module_obj):
     assert module_obj["seq"] is None
 
 
+def _assert_antsdr_missing(module_obj):
+    assert module_obj["ok"] is False
+    assert module_obj["last_update_ms"] is None
+    assert module_obj["last_error"] in (
+        "ANTSDR_NOT_CONNECTED",
+        "ANTSDR_LIB_MISSING",
+        "ANTSDR_INIT_FAILED",
+    )
+
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -179,7 +189,9 @@ def test_status_shape():
 
     _assert_esp32_missing(data["modules"]["esp32"])
 
-    for module_name in ["antsdr", "remoteid", "video"]:
+    _assert_antsdr_missing(data["modules"]["antsdr"])
+
+    for module_name in ["remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 
@@ -209,7 +221,17 @@ def test_health_shape():
     assert esp32_health["comms_ok"] is False
     assert esp32_health["last_error"] == "ESP32_SERIAL_NOT_CONNECTED"
 
-    for module_name in ["antsdr", "remoteid", "video"]:
+    antsdr_health = data["modules"]["antsdr"]
+    assert antsdr_health["ok"] is False
+    assert antsdr_health["last_error"] in (
+        "ANTSDR_NOT_CONNECTED",
+        "ANTSDR_LIB_MISSING",
+        "ANTSDR_INIT_FAILED",
+    )
+    assert antsdr_health["device_present"] is False
+    assert antsdr_health["driver_ok"] is False
+
+    for module_name in ["remoteid", "video"]:
         _assert_placeholder(data["modules"][module_name])
 
 

@@ -232,6 +232,23 @@ GATES:
 SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ```
 
+## Phase C.5 — AntSDR Baseline
+### BEFORE
+- AntSDR module was `not_implemented` in status/health.
+- Full raw outputs captured in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE C.5 STEP 0 BEFORE**.
+
+### CHANGE
+- Added AntSDR presence detection scaffold with explicit errors:
+  - `ANTSDR_NOT_CONNECTED`
+  - `ANTSDR_LIB_MISSING`
+  - `ANTSDR_INIT_FAILED`
+- Wired poller in state with configurable `NDEFENDER_ANTSDR_URI`.
+- Added unit tests for missing lib, init fail, and init success.
+- Updated evidence/test expectations for AntSDR module.
+
+### AFTER
+- Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE C.5 STEP 3 GATES**.
+
 Status/health snippets:
 - `/api/v1/status .modules.esp32`
 ```
