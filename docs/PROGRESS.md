@@ -262,6 +262,18 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ### AFTER
 - Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE C.7 STEP 3 GATES**.
 
+## Phase D.1 — Contact Fusion Engine
+### BEFORE
+- No fusion module; contacts were sourced directly from RemoteID.
+
+### CHANGE
+- Added fusion engine to merge RemoteID + ESP32 + AntSDR events.
+- Emits `CONTACT_NEW/UPDATE/LOST` from fusion.
+- Added fusion status/health in API and tests.
+
+### AFTER
+- Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE D.1 STEP 3 GATES**.
+
 Status/health snippets:
 - `/api/v1/status .modules.esp32`
 ```

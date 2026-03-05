@@ -25,6 +25,8 @@ from .models import (
     Esp32Health,
     Esp32Status,
     EventEnvelope,
+    FusionHealth,
+    FusionStatus,
     HealthModules,
     OsHealth,
     OsStatus,
@@ -43,6 +45,7 @@ from .modules.ups_hat_e import FakeUpsHatEReader, UpsHatEReader
 from .modules.esp32 import Esp32SerialReader, Esp32NotConnected
 from .modules.antsdr import AntsdrReader
 from .modules.remoteid import RemoteIdIngestor
+from .modules.fusion import FusionEngine
 
 
 def _default_status_modules() -> StatusModules:
@@ -52,6 +55,7 @@ def _default_status_modules() -> StatusModules:
         esp32=Esp32Status(ok=False, connected=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
         antsdr=AntsdrStatus(ok=False, last_error="ANTSDR_NOT_CONNECTED"),
         remoteid=RemoteIdStatus(ok=False, last_error="REMOTEID_FILE_MISSING"),
+        fusion=FusionStatus(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
         video=VideoStatus(ok=False, last_error="not_implemented"),
     )
 
@@ -63,6 +67,7 @@ def _default_health_modules() -> HealthModules:
         esp32=Esp32Health(ok=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
         antsdr=AntsdrHealth(ok=False, last_error="ANTSDR_NOT_CONNECTED", device_present=False, driver_ok=False),
         remoteid=RemoteIdHealth(ok=False, last_error="REMOTEID_FILE_MISSING", input_stream_ok=False),
+        fusion=FusionHealth(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
         video=VideoHealth(ok=False, last_error="not_implemented"),
     )
 
@@ -87,6 +92,9 @@ class StateStore:
     _antsdr_reader: AntsdrReader | None = field(default=None, init=False, repr=False)
     _remoteid_thread: Thread | None = field(default=None, init=False, repr=False)
     _remoteid_reader: RemoteIdIngestor | None = field(default=None, init=False, repr=False)
+    _fusion_thread: Thread | None = field(default=None, init=False, repr=False)
+    _fusion_engine: FusionEngine | None = field(default=None, init=False, repr=False)
+    _fusion_queue: Any = field(default=None, init=False, repr=False)
 
     def refresh_os(self) -> None:
         status = read_os_status()
@@ -138,11 +146,21 @@ class StateStore:
         with self._lock:
             self.modules_status.remoteid = status
             self.modules_health.remoteid = health
-            self.contacts = self._remoteid_reader.contacts_snapshot()
         self._remoteid_thread = Thread(
             target=self._remoteid_loop, args=(self._remoteid_reader,), daemon=True
         )
         self._remoteid_thread.start()
+
+        self._fusion_engine = FusionEngine()
+        with self._lock:
+            self.modules_status.fusion = self._fusion_engine.status()
+            self.modules_health.fusion = self._fusion_engine.health()
+            self.contacts = self._fusion_engine.contacts_snapshot()
+        self._fusion_queue = EVENT_HUB.subscribe()
+        self._fusion_thread = Thread(
+            target=self._fusion_loop, args=(self._fusion_engine, self._fusion_queue), daemon=True
+        )
+        self._fusion_thread.start()
 
     def _ups_loop(self, reader: UpsHatEReader) -> None:
         while not self._stop_event.is_set():
@@ -191,7 +209,6 @@ class StateStore:
             with self._lock:
                 self.modules_status.remoteid = status
                 self.modules_health.remoteid = health
-                self.contacts = reader.contacts_snapshot()
             for event_type, payload in events:
                 EVENT_HUB.publish(
                     EventEnvelope(
@@ -202,6 +219,36 @@ class StateStore:
                     ).model_dump()
                 )
             sleep(REMOTEID_POLL_INTERVAL_S)
+
+    def _fusion_loop(self, engine: FusionEngine, queue) -> None:
+        from queue import Empty
+
+        while not self._stop_event.is_set():
+            try:
+                event = queue.get(timeout=1.0)
+            except Empty:
+                event = None
+
+            now = now_ms()
+            events = []
+            if event:
+                events.extend(engine.process_event(event, now=now))
+            events.extend(engine.expire(now=now))
+
+            with self._lock:
+                self.modules_status.fusion = engine.status(now=now)
+                self.modules_health.fusion = engine.health(now=now)
+                self.contacts = engine.contacts_snapshot()
+
+            for event_type, payload in events:
+                EVENT_HUB.publish(
+                    EventEnvelope(
+                        type=event_type,
+                        timestamp_ms=now,
+                        source="fusion",
+                        data=payload,
+                    ).model_dump()
+                )
 
     def esp32_connected(self) -> bool:
         with self._lock:

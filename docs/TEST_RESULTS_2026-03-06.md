@@ -5,6 +5,7 @@
 - esp32_status: PASS (ok)
 - antsdr_status: PASS (ok)
 - remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
 - placeholders_status: PASS (ok)
 - health_keys: PASS (ok)
 - os_health: PASS (ok)
@@ -12,16 +13,17 @@
 - esp32_health: PASS (ok)
 - antsdr_health: PASS (ok)
 - remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
 - placeholders_health: PASS (ok)
 - contacts_keys: PASS (ok)
 - ws_hello: PASS (ok)
 
-SUMMARY Total=16 PASS=16 FAIL=0 SKIP=0
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
 
-# PHASE C.7 STEP 3 GATES
+# PHASE D.1 STEP 3 GATES (latest)
 - `pytest -q`
 ```
-............                                                          [100%]
+...............                                                       [100%]
 =============================== warnings summary ===============================
 app/main.py:23
   /home/toybook/ndefender-unified-backend/app/main.py:23: DeprecationWarning: 
@@ -42,9 +44,53 @@ app/main.py:23
     return self.router.on_event(event_type)
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-15 passed, 2 warnings in 1.63s
+18 passed, 2 warnings in 1.67s
 ```
 - `python3 scripts/run_evidence.py`
 ```
-SUMMARY Total=16 PASS=16 FAIL=0 SKIP=0
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
 ```
+
+# Test Results 2026-03-06
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
+
+# Test Results 2026-03-06
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0

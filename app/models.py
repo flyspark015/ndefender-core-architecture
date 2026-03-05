@@ -126,6 +126,20 @@ class RemoteIdHealth(BaseModel):
     input_stream_ok: Optional[bool] = None
 
 
+class FusionStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+    active_contacts: Optional[int] = None
+
+
+class FusionHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+    active_contacts: Optional[int] = None
+
+
 class VideoStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
@@ -151,6 +165,7 @@ class StatusModules(BaseModel):
     esp32: Esp32Status
     antsdr: AntsdrStatus
     remoteid: RemoteIdStatus
+    fusion: FusionStatus
     video: VideoStatus
 
 
@@ -160,6 +175,7 @@ class HealthModules(BaseModel):
     esp32: Esp32Health
     antsdr: AntsdrHealth
     remoteid: RemoteIdHealth
+    fusion: FusionHealth
     video: VideoHealth
 
 

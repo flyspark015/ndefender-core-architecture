@@ -70,6 +70,12 @@ STATUS_FIELDS = {
         "last_error",
         "active_contacts",
     },
+    "fusion": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "active_contacts",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -88,6 +94,7 @@ HEALTH_FIELDS = {
     "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
+    "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -171,6 +178,14 @@ def _assert_remoteid_state(module_obj):
     )
 
 
+def _assert_fusion_state(module_obj):
+    assert module_obj["ok"] is True
+    assert isinstance(module_obj["last_update_ms"], int)
+    assert module_obj["last_update_ms"] >= 1_600_000_000_000
+    assert module_obj["last_error"] is None
+    assert isinstance(module_obj["active_contacts"], int)
+
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -206,6 +221,7 @@ def test_status_shape():
     _assert_antsdr_missing(data["modules"]["antsdr"])
 
     _assert_remoteid_state(data["modules"]["remoteid"])
+    _assert_fusion_state(data["modules"]["fusion"])
 
     for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
@@ -262,6 +278,13 @@ def test_health_shape():
             "REMOTEID_READ_FAILED",
         )
         assert remoteid_health["input_stream_ok"] in (True, False, None)
+
+    fusion_health = data["modules"]["fusion"]
+    assert fusion_health["ok"] is True
+    assert isinstance(fusion_health["last_update_ms"], int)
+    assert fusion_health["last_update_ms"] >= 1_600_000_000_000
+    assert fusion_health["last_error"] is None
+    assert isinstance(fusion_health["active_contacts"], int)
 
     for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])

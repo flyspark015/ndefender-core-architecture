@@ -82,6 +82,12 @@ STATUS_FIELDS = {
         "last_error",
         "active_contacts",
     },
+    "fusion": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "active_contacts",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -100,6 +106,7 @@ HEALTH_FIELDS = {
     "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
+    "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -214,6 +221,21 @@ def _check_remoteid_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
         "REMOTEID_READ_FAILED",
     ):
         return False, "remoteid_last_error_not_expected"
+    return True, "ok"
+
+
+def _check_fusion_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    fusion = status_obj.get("modules", {}).get("fusion", {})
+    if fusion.get("ok") is not True:
+        return False, "fusion_ok_not_true"
+    if fusion.get("last_error") is not None:
+        return False, "fusion_last_error_not_null"
+    if not isinstance(fusion.get("last_update_ms"), int):
+        return False, "fusion_last_update_not_int"
+    if fusion.get("last_update_ms") < 1_600_000_000_000:
+        return False, "fusion_last_update_not_epoch"
+    if not isinstance(fusion.get("active_contacts"), int):
+        return False, "fusion_active_contacts_not_int"
     return True, "ok"
 
 
@@ -409,6 +431,21 @@ def _check_remoteid_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "ok"
 
 
+def _check_fusion_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    fusion = health_obj.get("modules", {}).get("fusion", {})
+    if fusion.get("ok") is not True:
+        return False, "fusion_health_ok_not_true"
+    if fusion.get("last_error") is not None:
+        return False, "fusion_health_last_error_not_null"
+    if not isinstance(fusion.get("last_update_ms"), int):
+        return False, "fusion_health_last_update_not_int"
+    if fusion.get("last_update_ms") < 1_600_000_000_000:
+        return False, "fusion_health_last_update_not_epoch"
+    if not isinstance(fusion.get("active_contacts"), int):
+        return False, "fusion_health_active_contacts_not_int"
+    return True, "ok"
+
+
 async def _ws_hello_check() -> Tuple[bool, str]:
     try:
         async with websockets.connect(WS_URL, open_timeout=1, close_timeout=1) as ws:
@@ -451,6 +488,9 @@ def run() -> int:
             ok, detail = _check_remoteid_status(status_json)
             results.append(("remoteid_status", ok, detail))
 
+            ok, detail = _check_fusion_status(status_json)
+            results.append(("fusion_status", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
@@ -481,6 +521,9 @@ def run() -> int:
 
             ok, detail = _check_remoteid_health(health_json)
             results.append(("remoteid_health", ok, detail))
+
+            ok, detail = _check_fusion_health(health_json)
+            results.append(("fusion_health", ok, detail))
 
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))
@@ -516,7 +559,11 @@ def run() -> int:
     report_lines.append(summary)
 
     report_path = Path("docs") / f"TEST_RESULTS_{date.today().isoformat()}.md"
-    report_path.write_text("\n".join(report_lines) + "\n")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    content = "\n".join(report_lines) + "\n"
+    prefix = "\n" if report_path.exists() else ""
+    with report_path.open("a", encoding="utf-8") as handle:
+        handle.write(prefix + content)
 
     print(summary)
     return 0 if failed == 0 else 1
