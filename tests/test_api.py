@@ -68,10 +68,7 @@ STATUS_FIELDS = {
         "ok",
         "last_update_ms",
         "last_error",
-        "contacts_count",
-        "last_contact_ms",
-        "latitude",
-        "longitude",
+        "active_contacts",
     },
     "video": {
         "ok",
@@ -90,7 +87,7 @@ HEALTH_FIELDS = {
     "os": {"ok", "last_update_ms", "last_error", "hostname", "os_version", "kernel_version", "time_sync_ok"},
     "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
-    "remoteid": {"ok", "last_update_ms", "last_error", "receiver_ok", "gps_ok"},
+    "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -157,6 +154,23 @@ def _assert_antsdr_missing(module_obj):
     )
 
 
+def _assert_remoteid_state(module_obj):
+    if module_obj["ok"] is True:
+        assert isinstance(module_obj["last_update_ms"], int)
+        assert module_obj["last_update_ms"] >= 1_600_000_000_000
+        assert module_obj["last_error"] is None
+        assert isinstance(module_obj["active_contacts"], int)
+        return
+    assert module_obj["ok"] is False
+    assert module_obj["last_update_ms"] is None
+    assert module_obj["last_error"] in (
+        "REMOTEID_FILE_MISSING",
+        "REMOTEID_NO_DATA",
+        "REMOTEID_PARSE_ERROR",
+        "REMOTEID_READ_FAILED",
+    )
+
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -191,7 +205,9 @@ def test_status_shape():
 
     _assert_antsdr_missing(data["modules"]["antsdr"])
 
-    for module_name in ["remoteid", "video"]:
+    _assert_remoteid_state(data["modules"]["remoteid"])
+
+    for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
 
 
@@ -231,7 +247,23 @@ def test_health_shape():
     assert antsdr_health["device_present"] is False
     assert antsdr_health["driver_ok"] is False
 
-    for module_name in ["remoteid", "video"]:
+    remoteid_health = data["modules"]["remoteid"]
+    if remoteid_health["ok"] is True:
+        assert isinstance(remoteid_health["last_update_ms"], int)
+        assert remoteid_health["last_update_ms"] >= 1_600_000_000_000
+        assert remoteid_health["last_error"] is None
+        assert remoteid_health["input_stream_ok"] is True
+    else:
+        assert remoteid_health["ok"] is False
+        assert remoteid_health["last_error"] in (
+            "REMOTEID_FILE_MISSING",
+            "REMOTEID_NO_DATA",
+            "REMOTEID_PARSE_ERROR",
+            "REMOTEID_READ_FAILED",
+        )
+        assert remoteid_health["input_stream_ok"] in (True, False, None)
+
+    for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
 
 

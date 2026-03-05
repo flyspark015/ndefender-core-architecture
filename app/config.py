@@ -12,3 +12,8 @@ ESP32_READ_TIMEOUT_S = float(os.getenv("NDEFENDER_ESP32_READ_TIMEOUT_S", "1.0"))
 ESP32_RECONNECT_S = float(os.getenv("NDEFENDER_ESP32_RECONNECT_S", "1.0"))
 ANTSDR_URI = os.getenv("NDEFENDER_ANTSDR_URI", "").strip()
 ANTSDR_POLL_INTERVAL_S = float(os.getenv("NDEFENDER_ANTSDR_POLL_INTERVAL_S", "2.0"))
+REMOTEID_EK_PATH = os.getenv(
+    "NDEFENDER_REMOTEID_EK_PATH", "/opt/ndefender/logs/odid_wifi_sample.ek.jsonl"
+).strip()
+REMOTEID_TTL_S = float(os.getenv("NDEFENDER_REMOTEID_TTL_S", "15.0"))
+REMOTEID_POLL_INTERVAL_S = float(os.getenv("NDEFENDER_REMOTEID_POLL_INTERVAL_S", "1.0"))

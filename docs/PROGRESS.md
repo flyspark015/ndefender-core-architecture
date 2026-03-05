@@ -249,6 +249,19 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ### AFTER
 - Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE C.5 STEP 3 GATES**.
 
+## Phase C.7 — RemoteID Ingestion
+### BEFORE
+- RemoteID module was `not_implemented` in status/health.
+
+### CHANGE
+- Added RemoteID JSONL ingestion + contact tracker (TTL 15s).
+- Emits WS events: `CONTACT_NEW`, `CONTACT_UPDATE`, `CONTACT_LOST`.
+- Added unit tests for new/update/lost behavior.
+- Updated evidence/test expectations for RemoteID module fields.
+
+### AFTER
+- Gates PASS. Full outputs stored in `docs/TEST_RESULTS_2026-03-06.md` under **PHASE C.7 STEP 3 GATES**.
+
 Status/health snippets:
 - `/api/v1/status .modules.esp32`
 ```

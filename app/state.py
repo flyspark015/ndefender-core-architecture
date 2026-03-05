@@ -14,6 +14,9 @@ from .config import (
     ESP32_RECONNECT_S,
     ANTSDR_POLL_INTERVAL_S,
     ANTSDR_URI,
+    REMOTEID_EK_PATH,
+    REMOTEID_POLL_INTERVAL_S,
+    REMOTEID_TTL_S,
     UPS_POLL_INTERVAL_S,
 )
 from .models import (
@@ -39,6 +42,7 @@ from .modules.os_module import read_os_health, read_os_status, status_to_system
 from .modules.ups_hat_e import FakeUpsHatEReader, UpsHatEReader
 from .modules.esp32 import Esp32SerialReader, Esp32NotConnected
 from .modules.antsdr import AntsdrReader
+from .modules.remoteid import RemoteIdIngestor
 
 
 def _default_status_modules() -> StatusModules:
@@ -47,7 +51,7 @@ def _default_status_modules() -> StatusModules:
         os=OsStatus(ok=False, last_error=None),
         esp32=Esp32Status(ok=False, connected=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
         antsdr=AntsdrStatus(ok=False, last_error="ANTSDR_NOT_CONNECTED"),
-        remoteid=RemoteIdStatus(ok=False, last_error="not_implemented"),
+        remoteid=RemoteIdStatus(ok=False, last_error="REMOTEID_FILE_MISSING"),
         video=VideoStatus(ok=False, last_error="not_implemented"),
     )
 
@@ -58,7 +62,7 @@ def _default_health_modules() -> HealthModules:
         os=OsHealth(ok=False, last_error=None),
         esp32=Esp32Health(ok=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
         antsdr=AntsdrHealth(ok=False, last_error="ANTSDR_NOT_CONNECTED", device_present=False, driver_ok=False),
-        remoteid=RemoteIdHealth(ok=False, last_error="not_implemented"),
+        remoteid=RemoteIdHealth(ok=False, last_error="REMOTEID_FILE_MISSING", input_stream_ok=False),
         video=VideoHealth(ok=False, last_error="not_implemented"),
     )
 
@@ -81,6 +85,8 @@ class StateStore:
     _esp32_reader: Esp32SerialReader | None = field(default=None, init=False, repr=False)
     _antsdr_thread: Thread | None = field(default=None, init=False, repr=False)
     _antsdr_reader: AntsdrReader | None = field(default=None, init=False, repr=False)
+    _remoteid_thread: Thread | None = field(default=None, init=False, repr=False)
+    _remoteid_reader: RemoteIdIngestor | None = field(default=None, init=False, repr=False)
 
     def refresh_os(self) -> None:
         status = read_os_status()
@@ -127,6 +133,17 @@ class StateStore:
         self._antsdr_thread = Thread(target=self._antsdr_loop, args=(self._antsdr_reader,), daemon=True)
         self._antsdr_thread.start()
 
+        self._remoteid_reader = RemoteIdIngestor(path=REMOTEID_EK_PATH, ttl_s=REMOTEID_TTL_S)
+        status, health, _ = self._remoteid_reader.poll()
+        with self._lock:
+            self.modules_status.remoteid = status
+            self.modules_health.remoteid = health
+            self.contacts = self._remoteid_reader.contacts_snapshot()
+        self._remoteid_thread = Thread(
+            target=self._remoteid_loop, args=(self._remoteid_reader,), daemon=True
+        )
+        self._remoteid_thread.start()
+
     def _ups_loop(self, reader: UpsHatEReader) -> None:
         while not self._stop_event.is_set():
             status, health = reader.poll()
@@ -167,6 +184,24 @@ class StateStore:
                 self.modules_status.antsdr = status
                 self.modules_health.antsdr = health
             sleep(ANTSDR_POLL_INTERVAL_S)
+
+    def _remoteid_loop(self, reader: RemoteIdIngestor) -> None:
+        while not self._stop_event.is_set():
+            status, health, events = reader.poll()
+            with self._lock:
+                self.modules_status.remoteid = status
+                self.modules_health.remoteid = health
+                self.contacts = reader.contacts_snapshot()
+            for event_type, payload in events:
+                EVENT_HUB.publish(
+                    EventEnvelope(
+                        type=event_type,
+                        timestamp_ms=now_ms(),
+                        source="remoteid",
+                        data=payload,
+                    ).model_dump()
+                )
+            sleep(REMOTEID_POLL_INTERVAL_S)
 
     def esp32_connected(self) -> bool:
         with self._lock:

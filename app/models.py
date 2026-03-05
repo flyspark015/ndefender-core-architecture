@@ -116,18 +116,14 @@ class RemoteIdStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
     last_error: Optional[str] = None
-    contacts_count: Optional[int] = None
-    last_contact_ms: Optional[int] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    active_contacts: Optional[int] = None
 
 
 class RemoteIdHealth(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
     last_error: Optional[str] = None
-    receiver_ok: Optional[bool] = None
-    gps_ok: Optional[bool] = None
+    input_stream_ok: Optional[bool] = None
 
 
 class VideoStatus(BaseModel):

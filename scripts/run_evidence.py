@@ -80,10 +80,7 @@ STATUS_FIELDS = {
         "ok",
         "last_update_ms",
         "last_error",
-        "contacts_count",
-        "last_contact_ms",
-        "latitude",
-        "longitude",
+        "active_contacts",
     },
     "video": {
         "ok",
@@ -102,7 +99,7 @@ HEALTH_FIELDS = {
     "os": {"ok", "last_update_ms", "last_error", "hostname", "os_version", "kernel_version", "time_sync_ok"},
     "esp32": {"ok", "last_update_ms", "last_error", "comms_ok"},
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
-    "remoteid": {"ok", "last_update_ms", "last_error", "receiver_ok", "gps_ok"},
+    "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -185,12 +182,38 @@ def _check_os_populated(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
 
 
 def _check_placeholders(modules: Dict[str, Any]) -> Tuple[bool, str]:
-    for module_name in ["remoteid", "video"]:
+    for module_name in ["video"]:
         mod = modules.get(module_name, {})
         if mod.get("ok") is not False:
             return False, f"{module_name}_ok_not_false"
         if mod.get("last_error") != "not_implemented":
             return False, f"{module_name}_last_error_not_not_implemented"
+    return True, "ok"
+
+
+def _check_remoteid_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    rid = status_obj.get("modules", {}).get("remoteid", {})
+    if rid.get("ok") is True:
+        if rid.get("last_error") is not None:
+            return False, "remoteid_last_error_not_null"
+        if not isinstance(rid.get("last_update_ms"), int):
+            return False, "remoteid_last_update_not_int"
+        if rid.get("last_update_ms") < 1_600_000_000_000:
+            return False, "remoteid_last_update_not_epoch"
+        if not isinstance(rid.get("active_contacts"), int):
+            return False, "remoteid_active_contacts_not_int"
+        return True, "ok"
+    if rid.get("ok") is not False:
+        return False, "remoteid_ok_not_false"
+    if rid.get("last_update_ms") is not None:
+        return False, "remoteid_last_update_not_null"
+    if rid.get("last_error") not in (
+        "REMOTEID_FILE_MISSING",
+        "REMOTEID_NO_DATA",
+        "REMOTEID_PARSE_ERROR",
+        "REMOTEID_READ_FAILED",
+    ):
+        return False, "remoteid_last_error_not_expected"
     return True, "ok"
 
 
@@ -360,6 +383,32 @@ def _check_antsdr_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "ok"
 
 
+def _check_remoteid_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    rid = health_obj.get("modules", {}).get("remoteid", {})
+    if rid.get("ok") is True:
+        if rid.get("last_error") is not None:
+            return False, "remoteid_health_last_error_not_null"
+        if not isinstance(rid.get("last_update_ms"), int):
+            return False, "remoteid_health_last_update_not_int"
+        if rid.get("last_update_ms") < 1_600_000_000_000:
+            return False, "remoteid_health_last_update_not_epoch"
+        if rid.get("input_stream_ok") is not True:
+            return False, "remoteid_input_stream_not_true"
+        return True, "ok"
+    if rid.get("ok") is not False:
+        return False, "remoteid_health_ok_not_false"
+    if rid.get("last_update_ms") is not None:
+        return False, "remoteid_health_last_update_not_null"
+    if rid.get("last_error") not in (
+        "REMOTEID_FILE_MISSING",
+        "REMOTEID_NO_DATA",
+        "REMOTEID_PARSE_ERROR",
+        "REMOTEID_READ_FAILED",
+    ):
+        return False, "remoteid_health_last_error_not_expected"
+    return True, "ok"
+
+
 async def _ws_hello_check() -> Tuple[bool, str]:
     try:
         async with websockets.connect(WS_URL, open_timeout=1, close_timeout=1) as ws:
@@ -399,6 +448,9 @@ def run() -> int:
             ok, detail = _check_antsdr_status(status_json)
             results.append(("antsdr_status", ok, detail))
 
+            ok, detail = _check_remoteid_status(status_json)
+            results.append(("remoteid_status", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
@@ -426,6 +478,9 @@ def run() -> int:
 
             ok, detail = _check_antsdr_health(health_json)
             results.append(("antsdr_health", ok, detail))
+
+            ok, detail = _check_remoteid_health(health_json)
+            results.append(("remoteid_health", ok, detail))
 
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))
