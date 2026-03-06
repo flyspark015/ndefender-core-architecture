@@ -58,10 +58,14 @@ STATUS_FIELDS = {
         "ok",
         "last_update_ms",
         "last_error",
+        "device_present",
+        "driver_ok",
         "center_freq_hz",
         "sample_rate_hz",
+        "rf_bw_hz",
         "gain_db",
         "rf_power_dbm",
+        "noise_floor_dbm",
         "stream_active",
     },
     "remoteid": {
@@ -151,13 +155,24 @@ def _assert_esp32_missing(module_obj):
     assert module_obj["seq"] is None
 
 
-def _assert_antsdr_missing(module_obj):
+def _assert_antsdr_state(module_obj):
+    if module_obj["ok"] is True:
+        assert module_obj["last_error"] is None
+        assert isinstance(module_obj["last_update_ms"], int)
+        assert module_obj["last_update_ms"] >= 1_600_000_000_000
+        assert module_obj["device_present"] is True
+        assert module_obj["driver_ok"] is True
+        return
     assert module_obj["ok"] is False
     assert module_obj["last_update_ms"] is None
+    assert module_obj["device_present"] is False
+    assert module_obj["driver_ok"] is False
     assert module_obj["last_error"] in (
         "ANTSDR_NOT_CONNECTED",
         "ANTSDR_LIB_MISSING",
         "ANTSDR_INIT_FAILED",
+        "ANTSDR_DISABLED",
+        "ANTSDR_READ_FAILED",
     )
 
 
@@ -218,7 +233,7 @@ def test_status_shape():
 
     _assert_esp32_missing(data["modules"]["esp32"])
 
-    _assert_antsdr_missing(data["modules"]["antsdr"])
+    _assert_antsdr_state(data["modules"]["antsdr"])
 
     _assert_remoteid_state(data["modules"]["remoteid"])
     _assert_fusion_state(data["modules"]["fusion"])
@@ -254,14 +269,23 @@ def test_health_shape():
     assert esp32_health["last_error"] == "ESP32_SERIAL_NOT_CONNECTED"
 
     antsdr_health = data["modules"]["antsdr"]
-    assert antsdr_health["ok"] is False
-    assert antsdr_health["last_error"] in (
-        "ANTSDR_NOT_CONNECTED",
-        "ANTSDR_LIB_MISSING",
-        "ANTSDR_INIT_FAILED",
-    )
-    assert antsdr_health["device_present"] is False
-    assert antsdr_health["driver_ok"] is False
+    if antsdr_health["ok"] is True:
+        assert antsdr_health["last_error"] is None
+        assert isinstance(antsdr_health["last_update_ms"], int)
+        assert antsdr_health["last_update_ms"] >= 1_600_000_000_000
+        assert antsdr_health["device_present"] is True
+        assert antsdr_health["driver_ok"] is True
+    else:
+        assert antsdr_health["ok"] is False
+        assert antsdr_health["last_error"] in (
+            "ANTSDR_NOT_CONNECTED",
+            "ANTSDR_LIB_MISSING",
+            "ANTSDR_INIT_FAILED",
+            "ANTSDR_DISABLED",
+            "ANTSDR_READ_FAILED",
+        )
+        assert antsdr_health["device_present"] is False
+        assert antsdr_health["driver_ok"] is False
 
     remoteid_health = data["modules"]["remoteid"]
     if remoteid_health["ok"] is True:

@@ -97,10 +97,14 @@ class AntsdrStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
     last_error: Optional[str] = None
-    center_freq_hz: Optional[float] = None
-    sample_rate_hz: Optional[float] = None
+    device_present: Optional[bool] = None
+    driver_ok: Optional[bool] = None
+    center_freq_hz: Optional[int] = None
+    sample_rate_hz: Optional[int] = None
+    rf_bw_hz: Optional[int] = None
     gain_db: Optional[float] = None
     rf_power_dbm: Optional[float] = None
+    noise_floor_dbm: Optional[float] = None
     stream_active: Optional[bool] = None
 
 

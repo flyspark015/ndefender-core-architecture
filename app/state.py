@@ -12,7 +12,12 @@ from .config import (
     ESP32_PORT,
     ESP32_READ_TIMEOUT_S,
     ESP32_RECONNECT_S,
+    ANTSDR_ENABLED,
     ANTSDR_POLL_INTERVAL_S,
+    ANTSDR_RF_BW_HZ,
+    ANTSDR_SAMPLE_RATE_HZ,
+    ANTSDR_STEP_HZ,
+    ANTSDR_SWEEP_PLAN,
     ANTSDR_URI,
     REMOTEID_EK_PATH,
     REMOTEID_POLL_INTERVAL_S,
@@ -43,7 +48,7 @@ from .events import EVENT_HUB
 from .modules.os_module import read_os_health, read_os_status, status_to_system
 from .modules.ups_hat_e import FakeUpsHatEReader, UpsHatEReader
 from .modules.esp32 import Esp32SerialReader, Esp32NotConnected
-from .modules.antsdr import AntsdrReader
+from .modules.antsdr import AntsdrController
 from .modules.remoteid import RemoteIdIngestor
 from .modules.fusion import FusionEngine
 
@@ -53,7 +58,13 @@ def _default_status_modules() -> StatusModules:
         ups=UpsStatus(ok=False, last_error="ups_starting"),
         os=OsStatus(ok=False, last_error=None),
         esp32=Esp32Status(ok=False, connected=False, last_error="ESP32_SERIAL_NOT_CONNECTED"),
-        antsdr=AntsdrStatus(ok=False, last_error="ANTSDR_NOT_CONNECTED"),
+        antsdr=AntsdrStatus(
+            ok=False,
+            last_error="ANTSDR_NOT_CONNECTED",
+            device_present=False,
+            driver_ok=False,
+            stream_active=False,
+        ),
         remoteid=RemoteIdStatus(ok=False, last_error="REMOTEID_FILE_MISSING"),
         fusion=FusionStatus(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
         video=VideoStatus(ok=False, last_error="not_implemented"),
@@ -89,7 +100,7 @@ class StateStore:
     _esp32_thread: Thread | None = field(default=None, init=False, repr=False)
     _esp32_reader: Esp32SerialReader | None = field(default=None, init=False, repr=False)
     _antsdr_thread: Thread | None = field(default=None, init=False, repr=False)
-    _antsdr_reader: AntsdrReader | None = field(default=None, init=False, repr=False)
+    _antsdr_controller: AntsdrController | None = field(default=None, init=False, repr=False)
     _remoteid_thread: Thread | None = field(default=None, init=False, repr=False)
     _remoteid_reader: RemoteIdIngestor | None = field(default=None, init=False, repr=False)
     _fusion_thread: Thread | None = field(default=None, init=False, repr=False)
@@ -133,12 +144,20 @@ class StateStore:
         self._esp32_thread = Thread(target=self._esp32_loop, args=(self._esp32_reader,), daemon=True)
         self._esp32_thread.start()
 
-        self._antsdr_reader = AntsdrReader(uri=ANTSDR_URI)
-        status, health = self._antsdr_reader.poll()
+        self._antsdr_controller = AntsdrController(
+            uri=ANTSDR_URI,
+            enabled=ANTSDR_ENABLED,
+            sample_rate_hz=ANTSDR_SAMPLE_RATE_HZ,
+            rf_bw_hz=ANTSDR_RF_BW_HZ,
+            sweep_plan=ANTSDR_SWEEP_PLAN,
+            step_hz=ANTSDR_STEP_HZ,
+            on_event=self._emit_antsdr_event,
+        )
+        status, health = self._antsdr_controller.poll()
         with self._lock:
             self.modules_status.antsdr = status
             self.modules_health.antsdr = health
-        self._antsdr_thread = Thread(target=self._antsdr_loop, args=(self._antsdr_reader,), daemon=True)
+        self._antsdr_thread = Thread(target=self._antsdr_loop, args=(self._antsdr_controller,), daemon=True)
         self._antsdr_thread.start()
 
         self._remoteid_reader = RemoteIdIngestor(path=REMOTEID_EK_PATH, ttl_s=REMOTEID_TTL_S)
@@ -195,7 +214,7 @@ class StateStore:
 
         reader.loop(self._stop_event, _update, _telemetry)
 
-    def _antsdr_loop(self, reader: AntsdrReader) -> None:
+    def _antsdr_loop(self, reader: AntsdrController) -> None:
         while not self._stop_event.is_set():
             status, health = reader.poll()
             with self._lock:
@@ -258,6 +277,32 @@ class StateStore:
         if self._esp32_reader is None:
             raise Esp32NotConnected()
         self._esp32_reader.send_command(command, payload, timestamp_ms)
+
+    def antsdr_start(self) -> tuple[bool, str | None]:
+        if self._antsdr_controller is None:
+            return False, "ANTSDR_NOT_CONNECTED"
+        return self._antsdr_controller.start_scan()
+
+    def antsdr_stop(self) -> tuple[bool, str | None]:
+        if self._antsdr_controller is None:
+            return False, "ANTSDR_NOT_CONNECTED"
+        status, _ = self._antsdr_controller.poll()
+        if not status.ok:
+            if status.last_error == "ANTSDR_LIB_MISSING":
+                return False, "ANTSDR_DRIVER_UNAVAILABLE"
+            return False, "ANTSDR_NOT_CONNECTED"
+        self._antsdr_controller.stop_scan()
+        return True, None
+
+    def _emit_antsdr_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        EVENT_HUB.publish(
+            EventEnvelope(
+                type=event_type,
+                timestamp_ms=now_ms(),
+                source="antsdr",
+                data=payload,
+            ).model_dump()
+        )
 
     def snapshot(self) -> Dict[str, Any]:
         with self._lock:

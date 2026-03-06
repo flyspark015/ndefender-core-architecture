@@ -70,10 +70,14 @@ STATUS_FIELDS = {
         "ok",
         "last_update_ms",
         "last_error",
+        "device_present",
+        "driver_ok",
         "center_freq_hz",
         "sample_rate_hz",
+        "rf_bw_hz",
         "gain_db",
         "rf_power_dbm",
+        "noise_floor_dbm",
         "stream_active",
     },
     "remoteid": {
@@ -248,6 +252,10 @@ def _check_antsdr_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
             return False, "antsdr_last_update_not_int"
         if antsdr.get("last_update_ms") < 1_600_000_000_000:
             return False, "antsdr_last_update_not_epoch"
+        if antsdr.get("device_present") is not True:
+            return False, "antsdr_device_present_not_true"
+        if antsdr.get("driver_ok") is not True:
+            return False, "antsdr_driver_ok_not_true"
         return True, "ok"
     if antsdr.get("ok") is not False:
         return False, "antsdr_ok_not_false"
@@ -257,8 +265,14 @@ def _check_antsdr_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
         "ANTSDR_NOT_CONNECTED",
         "ANTSDR_LIB_MISSING",
         "ANTSDR_INIT_FAILED",
+        "ANTSDR_DISABLED",
+        "ANTSDR_READ_FAILED",
     ):
         return False, "antsdr_last_error_not_expected"
+    if antsdr.get("device_present") is not False:
+        return False, "antsdr_device_present_not_false"
+    if antsdr.get("driver_ok") is not False:
+        return False, "antsdr_driver_ok_not_false"
     return True, "ok"
 
 
@@ -396,6 +410,8 @@ def _check_antsdr_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
         "ANTSDR_NOT_CONNECTED",
         "ANTSDR_LIB_MISSING",
         "ANTSDR_INIT_FAILED",
+        "ANTSDR_DISABLED",
+        "ANTSDR_READ_FAILED",
     ):
         return False, "antsdr_health_last_error_not_expected"
     if antsdr.get("device_present") is not False:

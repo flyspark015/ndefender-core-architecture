@@ -709,3 +709,25 @@ COMMAND_ACK {'type': 'COMMAND_ACK', 'timestamp_ms': 1772745797735, 'source': 'es
 ```
 SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
 ```
+
+## Phase C.6 — AntSDR Live Integration + RF Events
+### BEFORE
+- Step 0 evidence recorded in `docs/TEST_RESULTS_2026-03-06.md` (section `PHASE C.6 STEP 0 BEFORE`).
+- System date now: 2026-03-07; new gate outputs recorded in `docs/TEST_RESULTS_2026-03-07.md`.
+
+### CHANGE
+- Replaced AntSDR scaffold with `AntsdrController` (detection + scan loop + RF_CONTACT events).
+- Added AntSDR config knobs: `ANTSDR_URI`, `ANTSDR_ENABLED`, `ANTSDR_SWEEP_PLAN`, `ANTSDR_STEP_HZ`, `ANTSDR_SAMPLE_RATE_HZ`, `ANTSDR_RF_BW_HZ`.
+- Implemented `/api/v1/commands` for `antsdr/start` and `antsdr/stop` with deterministic 409/502 errors.
+- Added WS events: `RF_SCAN_STATE`, `RF_CONTACT_NEW/UPDATE/LOST` and COMMAND_ACK for AntSDR.
+- Installed Python dependencies: `pyadi-iio`, `pylibiio`.
+
+### AFTER (proof)
+- Full outputs captured in `docs/TEST_RESULTS_2026-03-07.md` under:
+  - `PHASE C.6 STEP 3 GATES`
+  - `PHASE C.6 STEP 5 AFTER (ANTS DR LIVE)`
+- Gate summary:
+  - `pytest -q`: 21 passed, 2 warnings
+  - `python3 scripts/run_evidence.py`: SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
+- AntSDR health/status shows `ok=true`, `device_present=true`, `driver_ok=true`, `stream_active=true` after start.
+- WS shows `RF_SCAN_STATE` and `RF_CONTACT_*` events while scanning.

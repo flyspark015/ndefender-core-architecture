@@ -18,6 +18,8 @@ SUPPORTED_COMMANDS = {
     "scan/start",
     "scan/stop",
     "vrx/tune",
+    "antsdr/start",
+    "antsdr/stop",
 }
 
 @app.on_event("startup")
@@ -49,11 +51,11 @@ def post_commands(_req: CommandRequest):
     command = _req.command
     payload = _req.payload or {}
 
-    def emit_ack(ok: bool, code: str, detail: str) -> None:
+    def emit_ack(source: str, ok: bool, code: str, detail: str) -> None:
         event = EventEnvelope(
             type="COMMAND_ACK",
             timestamp_ms=now_ms(),
-            source="esp32",
+            source=source,
             data={
                 "command": command,
                 "ok": ok,
@@ -65,14 +67,40 @@ def post_commands(_req: CommandRequest):
         EVENT_HUB.publish(event.model_dump())
 
     if command not in SUPPORTED_COMMANDS:
-        emit_ack(False, "NOT_IMPLEMENTED", "precondition_failed")
+        emit_ack("core", False, "NOT_IMPLEMENTED", "precondition_failed")
         return JSONResponse(
             status_code=409,
             content={"detail": "precondition_failed", "code": "NOT_IMPLEMENTED"},
         )
 
+    if command in ("antsdr/start", "antsdr/stop"):
+        if command == "antsdr/start":
+            ok, err = STATE.antsdr_start()
+            if ok:
+                emit_ack("antsdr", True, "OK", "ok")
+                return {"ok": True}
+            code = err or "ANTSDR_NOT_CONNECTED"
+        else:
+            ok, err = STATE.antsdr_stop()
+            if ok:
+                emit_ack("antsdr", True, "OK", "ok")
+                return {"ok": True}
+            code = err or "ANTSDR_NOT_CONNECTED"
+
+        if code == "ANTSDR_DRIVER_UNAVAILABLE":
+            emit_ack("antsdr", False, code, "upstream_unreachable")
+            return JSONResponse(
+                status_code=502,
+                content={"detail": "upstream_unreachable", "code": "ANTSDR_DRIVER_UNAVAILABLE"},
+            )
+        emit_ack("antsdr", False, "ANTSDR_NOT_CONNECTED", "precondition_failed")
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "precondition_failed", "code": "ANTSDR_NOT_CONNECTED"},
+        )
+
     if not STATE.esp32_connected():
-        emit_ack(False, "ESP32_SERIAL_NOT_CONNECTED", "precondition_failed")
+        emit_ack("esp32", False, "ESP32_SERIAL_NOT_CONNECTED", "precondition_failed")
         return JSONResponse(
             status_code=409,
             content={"detail": "precondition_failed", "code": "ESP32_SERIAL_NOT_CONNECTED"},
@@ -80,10 +108,10 @@ def post_commands(_req: CommandRequest):
 
     try:
         STATE.esp32_send_command(command, payload, ts)
-        emit_ack(True, "OK", "ok")
+        emit_ack("esp32", True, "OK", "ok")
         return {"ok": True}
     except Exception:
-        emit_ack(False, "ESP32_SERIAL_NOT_CONNECTED", "precondition_failed")
+        emit_ack("esp32", False, "ESP32_SERIAL_NOT_CONNECTED", "precondition_failed")
         return JSONResponse(
             status_code=409,
             content={"detail": "precondition_failed", "code": "ESP32_SERIAL_NOT_CONNECTED"},
