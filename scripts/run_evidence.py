@@ -92,6 +92,12 @@ STATUS_FIELDS = {
         "last_error",
         "active_contacts",
     },
+    "alerts": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "active_alerts",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -111,6 +117,7 @@ HEALTH_FIELDS = {
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
+    "alerts": {"ok", "last_update_ms", "last_error", "active_alerts"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -243,6 +250,19 @@ def _check_fusion_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "ok"
 
 
+def _check_alerts_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    alerts = status_obj.get("modules", {}).get("alerts", {})
+    if alerts.get("ok") is not True:
+        return False, "alerts_ok_not_true"
+    if alerts.get("last_error") is not None:
+        return False, "alerts_last_error_not_null"
+    if not isinstance(alerts.get("last_update_ms"), int):
+        return False, "alerts_last_update_not_int"
+    if alerts.get("last_update_ms") < 1_600_000_000_000:
+        return False, "alerts_last_update_not_epoch"
+    if not isinstance(alerts.get("active_alerts"), int):
+        return False, "alerts_active_alerts_not_int"
+    return True, "ok"
 def _check_antsdr_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
     antsdr = status_obj.get("modules", {}).get("antsdr", {})
     if antsdr.get("ok") is True:
@@ -462,6 +482,19 @@ def _check_fusion_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     return True, "ok"
 
 
+def _check_alerts_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    alerts = health_obj.get("modules", {}).get("alerts", {})
+    if alerts.get("ok") is not True:
+        return False, "alerts_health_ok_not_true"
+    if alerts.get("last_error") is not None:
+        return False, "alerts_health_last_error_not_null"
+    if not isinstance(alerts.get("last_update_ms"), int):
+        return False, "alerts_health_last_update_not_int"
+    if alerts.get("last_update_ms") < 1_600_000_000_000:
+        return False, "alerts_health_last_update_not_epoch"
+    if not isinstance(alerts.get("active_alerts"), int):
+        return False, "alerts_health_active_alerts_not_int"
+    return True, "ok"
 async def _ws_hello_check() -> Tuple[bool, str]:
     try:
         async with websockets.connect(WS_URL, open_timeout=1, close_timeout=1) as ws:
@@ -507,6 +540,9 @@ def run() -> int:
             ok, detail = _check_fusion_status(status_json)
             results.append(("fusion_status", ok, detail))
 
+            ok, detail = _check_alerts_status(status_json)
+            results.append(("alerts_status", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
@@ -540,6 +576,9 @@ def run() -> int:
 
             ok, detail = _check_fusion_health(health_json)
             results.append(("fusion_health", ok, detail))
+
+            ok, detail = _check_alerts_health(health_json)
+            results.append(("alerts_health", ok, detail))
 
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))

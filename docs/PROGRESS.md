@@ -731,3 +731,21 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
   - `python3 scripts/run_evidence.py`: SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
 - AntSDR health/status shows `ok=true`, `device_present=true`, `driver_ok=true`, `stream_active=true` after start.
 - WS shows `RF_SCAN_STATE` and `RF_CONTACT_*` events while scanning.
+
+## Phase D.3 — Threat Scoring + Alerts Engine
+### BEFORE
+- Alerts module absent. Step 0 outputs recorded in `docs/TEST_RESULTS_2026-03-07.md` under `PHASE D.3 STEP 0 BEFORE`.
+
+### CHANGE
+- Added `AlertsEngine` subscribing to fusion CONTACT_* events.
+- Added `/api/v1/alerts` endpoint (array) and alerts status/health modules.
+- Emits WS `ALERT_NEW` / `ALERT_UPDATE` with deterministic threat scoring + severity mapping.
+
+### AFTER (proof)
+- Full outputs recorded in `docs/TEST_RESULTS_2026-03-07.md` under:
+  - `PHASE D.3 STEP 2 GATES`
+  - `PHASE D.3 STEP 3 AFTER`
+- Gate summary:
+  - `pytest -q`: 23 passed, 2 warnings
+  - `python3 scripts/run_evidence.py`: SUMMARY Total=20 PASS=20 FAIL=0 SKIP=0
+- Alerts endpoint returns array with active alert(s) and WS emits `ALERT_NEW` / `ALERT_UPDATE`.

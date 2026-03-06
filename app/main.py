@@ -45,6 +45,11 @@ def get_contacts():
     return STATE.contacts_snapshot()
 
 
+@app.get("/api/v1/alerts")
+def get_alerts():
+    return STATE.alerts_snapshot()
+
+
 @app.post("/api/v1/commands")
 def post_commands(_req: CommandRequest):
     ts = _req.timestamp_ms or now_ms()

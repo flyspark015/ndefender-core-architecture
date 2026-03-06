@@ -80,6 +80,12 @@ STATUS_FIELDS = {
         "last_error",
         "active_contacts",
     },
+    "alerts": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "active_alerts",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -99,6 +105,7 @@ HEALTH_FIELDS = {
     "antsdr": {"ok", "last_update_ms", "last_error", "device_present", "driver_ok"},
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
+    "alerts": {"ok", "last_update_ms", "last_error", "active_alerts"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -201,6 +208,13 @@ def _assert_fusion_state(module_obj):
     assert isinstance(module_obj["active_contacts"], int)
 
 
+def _assert_alerts_state(module_obj):
+    assert module_obj["ok"] is True
+    assert isinstance(module_obj["last_update_ms"], int)
+    assert module_obj["last_update_ms"] >= 1_600_000_000_000
+    assert module_obj["last_error"] is None
+    assert isinstance(module_obj["active_alerts"], int)
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -237,6 +251,7 @@ def test_status_shape():
 
     _assert_remoteid_state(data["modules"]["remoteid"])
     _assert_fusion_state(data["modules"]["fusion"])
+    _assert_alerts_state(data["modules"]["alerts"])
 
     for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
@@ -310,6 +325,13 @@ def test_health_shape():
     assert fusion_health["last_error"] is None
     assert isinstance(fusion_health["active_contacts"], int)
 
+    alerts_health = data["modules"]["alerts"]
+    assert alerts_health["ok"] is True
+    assert isinstance(alerts_health["last_update_ms"], int)
+    assert alerts_health["last_update_ms"] >= 1_600_000_000_000
+    assert alerts_health["last_error"] is None
+    assert isinstance(alerts_health["active_alerts"], int)
+
     for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
 
@@ -331,3 +353,15 @@ def test_contacts_shape():
         assert "contact_id" in contact
         assert "type" in contact
         assert "last_seen_ms" in contact
+
+
+def test_alerts_shape():
+    r = client.get("/api/v1/alerts")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    if data:
+        alert = data[0]
+        assert "alert_id" in alert
+        assert "contact_id" in alert
+        assert "threat_score" in alert

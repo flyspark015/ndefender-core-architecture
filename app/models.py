@@ -144,6 +144,20 @@ class FusionHealth(BaseModel):
     active_contacts: Optional[int] = None
 
 
+class AlertsStatus(BaseModel):
+    ok: bool
+    active_alerts: Optional[int] = None
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+
+
+class AlertsHealth(BaseModel):
+    ok: bool
+    active_alerts: Optional[int] = None
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+
+
 class VideoStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
@@ -170,6 +184,7 @@ class StatusModules(BaseModel):
     antsdr: AntsdrStatus
     remoteid: RemoteIdStatus
     fusion: FusionStatus
+    alerts: AlertsStatus
     video: VideoStatus
 
 
@@ -180,6 +195,7 @@ class HealthModules(BaseModel):
     antsdr: AntsdrHealth
     remoteid: RemoteIdHealth
     fusion: FusionHealth
+    alerts: AlertsHealth
     video: VideoHealth
 
 

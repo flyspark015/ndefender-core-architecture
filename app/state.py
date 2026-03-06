@@ -32,6 +32,8 @@ from .models import (
     EventEnvelope,
     FusionHealth,
     FusionStatus,
+    AlertsHealth,
+    AlertsStatus,
     HealthModules,
     OsHealth,
     OsStatus,
@@ -51,6 +53,7 @@ from .modules.esp32 import Esp32SerialReader, Esp32NotConnected
 from .modules.antsdr import AntsdrController
 from .modules.remoteid import RemoteIdIngestor
 from .modules.fusion import FusionEngine
+from .modules.alerts import AlertsEngine
 
 
 def _default_status_modules() -> StatusModules:
@@ -67,6 +70,7 @@ def _default_status_modules() -> StatusModules:
         ),
         remoteid=RemoteIdStatus(ok=False, last_error="REMOTEID_FILE_MISSING"),
         fusion=FusionStatus(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
+        alerts=AlertsStatus(ok=True, last_error=None, active_alerts=0, last_update_ms=now_ms()),
         video=VideoStatus(ok=False, last_error="not_implemented"),
     )
 
@@ -79,6 +83,7 @@ def _default_health_modules() -> HealthModules:
         antsdr=AntsdrHealth(ok=False, last_error="ANTSDR_NOT_CONNECTED", device_present=False, driver_ok=False),
         remoteid=RemoteIdHealth(ok=False, last_error="REMOTEID_FILE_MISSING", input_stream_ok=False),
         fusion=FusionHealth(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
+        alerts=AlertsHealth(ok=True, last_error=None, active_alerts=0, last_update_ms=now_ms()),
         video=VideoHealth(ok=False, last_error="not_implemented"),
     )
 
@@ -106,6 +111,9 @@ class StateStore:
     _fusion_thread: Thread | None = field(default=None, init=False, repr=False)
     _fusion_engine: FusionEngine | None = field(default=None, init=False, repr=False)
     _fusion_queue: Any = field(default=None, init=False, repr=False)
+    _alerts_thread: Thread | None = field(default=None, init=False, repr=False)
+    _alerts_engine: AlertsEngine | None = field(default=None, init=False, repr=False)
+    _alerts_queue: Any = field(default=None, init=False, repr=False)
 
     def refresh_os(self) -> None:
         status = read_os_status()
@@ -180,6 +188,16 @@ class StateStore:
             target=self._fusion_loop, args=(self._fusion_engine, self._fusion_queue), daemon=True
         )
         self._fusion_thread.start()
+
+        self._alerts_engine = AlertsEngine()
+        with self._lock:
+            self.modules_status.alerts = self._alerts_engine.status()
+            self.modules_health.alerts = self._alerts_engine.health()
+        self._alerts_queue = EVENT_HUB.subscribe()
+        self._alerts_thread = Thread(
+            target=self._alerts_loop, args=(self._alerts_engine, self._alerts_queue), daemon=True
+        )
+        self._alerts_thread.start()
 
     def _ups_loop(self, reader: UpsHatEReader) -> None:
         while not self._stop_event.is_set():
@@ -269,6 +287,34 @@ class StateStore:
                     ).model_dump()
                 )
 
+    def _alerts_loop(self, engine: AlertsEngine, queue) -> None:
+        from queue import Empty
+
+        while not self._stop_event.is_set():
+            try:
+                event = queue.get(timeout=1.0)
+            except Empty:
+                event = None
+
+            now = now_ms()
+            events = []
+            if event:
+                events.extend(engine.process_event(event, now=now))
+
+            with self._lock:
+                self.modules_status.alerts = engine.status(now=now)
+                self.modules_health.alerts = engine.health(now=now)
+
+            for event_type, payload in events:
+                EVENT_HUB.publish(
+                    EventEnvelope(
+                        type=event_type,
+                        timestamp_ms=now,
+                        source="alerts",
+                        data=payload,
+                    ).model_dump()
+                )
+
     def esp32_connected(self) -> bool:
         with self._lock:
             return bool(self.modules_status.esp32.connected)
@@ -330,6 +376,12 @@ class StateStore:
     def contacts_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             return list(self.contacts)
+
+    def alerts_snapshot(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            if self._alerts_engine is None:
+                return []
+            return self._alerts_engine.alerts_snapshot()
 
 
 STATE = StateStore()
