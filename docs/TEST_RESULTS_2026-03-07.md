@@ -217,3 +217,25 @@ start_status 200 {"ok":true}
 - ws_hello: PASS (ok)
 
 SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
+
+# Test Results 2026-03-07
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=18 PASS=18 FAIL=0 SKIP=0
