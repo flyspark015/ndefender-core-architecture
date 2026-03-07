@@ -294,3 +294,98 @@ Not observed within 10s.
 - ws_hello: PASS (ok)
 
 SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+
+## Step 2 — UI Compatibility Layer Gates
+
+### pytest -q
+```
+23 passed, 2 warnings in 0.80s
+```
+
+### run_evidence.py
+```
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+```
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+
+### Step 2 Re-run (post-doc updates)
+```
+pytest -q: 23 passed, 2 warnings
+run_evidence.py: SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+```

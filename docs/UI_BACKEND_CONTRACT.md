@@ -370,3 +370,6 @@ Required keys:
 - No auth or API keys are used; security is via local-only binding and network gating.
 - Timestamps are epoch milliseconds except `esp32.device_uptime_ms` which is device uptime.
 - All module objects contain `ok`, `last_update_ms`, `last_error` keys even when null.
+- UI compatibility layer normalizes list fields (`rf_sources`, `video_sources`) to empty arrays when missing.
+- Alerts `severity` is normalized to lowercase (`low|medium|high`) if present.
+- WS `TELEMETRY_UPDATE` ensures `data.timestamp_ms` is present (fallback to envelope timestamp).

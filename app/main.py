@@ -7,6 +7,13 @@ from fastapi.responses import JSONResponse
 
 from .bus import EventBus
 from .events import EVENT_HUB
+from .adapters.ui_adapter import (
+    normalize_alerts,
+    normalize_contacts,
+    normalize_event,
+    normalize_health,
+    normalize_status,
+)
 from .models import CommandRequest, DeepHealth, EventEnvelope, StatusSnapshot, now_ms
 from .state import STATE
 
@@ -30,24 +37,24 @@ def _startup() -> None:
 def get_status() -> StatusSnapshot:
     STATE.start_pollers()
     STATE.refresh_os()
-    return StatusSnapshot(**STATE.snapshot())
+    return StatusSnapshot(**normalize_status(STATE.snapshot()))
 
 
 @app.get("/api/v1/health", response_model=DeepHealth)
 def get_health() -> DeepHealth:
     STATE.start_pollers()
     STATE.refresh_os()
-    return DeepHealth(**STATE.health())
+    return DeepHealth(**normalize_health(STATE.health()))
 
 
 @app.get("/api/v1/contacts")
 def get_contacts():
-    return STATE.contacts_snapshot()
+    return normalize_contacts(STATE.contacts_snapshot())
 
 
 @app.get("/api/v1/alerts")
 def get_alerts():
-    return STATE.alerts_snapshot()
+    return normalize_alerts(STATE.alerts_snapshot())
 
 
 @app.post("/api/v1/commands")
@@ -141,7 +148,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if event is None:
                 return
             try:
-                await websocket.send_json(event)
+                await websocket.send_json(normalize_event(event))
             except WebSocketDisconnect:
                 return
             except Exception:

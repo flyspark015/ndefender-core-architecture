@@ -607,7 +607,14 @@ def run() -> int:
                         "threat_score",
                     ]
                     missing = [k for k in required if k not in data[0]]
-                    ok, detail = (False, f"contacts_missing={missing}") if missing else (True, "ok")
+                    if missing:
+                        ok, detail = False, f"contacts_missing={missing}"
+                    elif not isinstance(data[0].get("rf_sources"), list):
+                        ok, detail = False, "contacts_rf_sources_not_list"
+                    elif not isinstance(data[0].get("video_sources"), list):
+                        ok, detail = False, "contacts_video_sources_not_list"
+                    else:
+                        ok, detail = True, "ok"
                 else:
                     ok, detail = True, "ok"
             else:
@@ -631,7 +638,12 @@ def run() -> int:
                         "state",
                     ]
                     missing = [k for k in required if k not in data[0]]
-                    ok, detail = (False, f"alerts_missing={missing}") if missing else (True, "ok")
+                    if missing:
+                        ok, detail = False, f"alerts_missing={missing}"
+                    elif data[0].get("severity") not in ("low", "medium", "high"):
+                        ok, detail = False, "alerts_severity_invalid"
+                    else:
+                        ok, detail = True, "ok"
                 else:
                     ok, detail = True, "ok"
             else:

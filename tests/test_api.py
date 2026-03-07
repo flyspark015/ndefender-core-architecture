@@ -361,6 +361,8 @@ def test_contacts_shape():
             "threat_score",
         ]:
             assert key in contact
+        assert isinstance(contact["rf_sources"], list)
+        assert isinstance(contact["video_sources"], list)
 
 
 def test_alerts_shape():
@@ -380,3 +382,4 @@ def test_alerts_shape():
             "state",
         ]:
             assert key in alert
+        assert alert["severity"] in ("low", "medium", "high")

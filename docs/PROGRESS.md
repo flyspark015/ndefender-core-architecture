@@ -765,3 +765,20 @@ CHANGE:
 AFTER:
 - UI contract documented and locked for: status, health, contacts, alerts, commands, websocket envelope.
 - Tests + evidence pass (SUMMARY Total=21 PASS=21 FAIL=0). See test results file.
+
+
+## 2026-03-08 — Step 2 UI Compatibility Layer
+
+BEFORE:
+- UI consumed raw backend payloads with inconsistent null/list handling and unsorted contacts/alerts.
+
+CHANGE:
+- Added backend-side UI compatibility adapter (normalizes lists, severity, telemetry timestamp).
+- Contacts/alerts sorted by `last_seen_ms` descending for stable UI ordering.
+- WS events normalized at send-time without changing envelope shape.
+- Tests + evidence updated to assert list/valid severity.
+- Full outputs appended to `docs/TEST_RESULTS_2026-03-08.md`.
+
+AFTER:
+- Compatibility layer active; contract unchanged and UI-safe defaults provided.
+- Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).
