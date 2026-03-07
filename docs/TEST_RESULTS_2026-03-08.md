@@ -389,3 +389,568 @@ SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
 pytest -q: 23 passed, 2 warnings
 run_evidence.py: SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
 ```
+
+## Step 3 — Live Data Flow Validation (BEFORE)
+
+### systemctl status ndefender-unified
+● ndefender-unified.service - N-Defender Unified Backend (FastAPI)
+     Loaded: loaded (/etc/systemd/system/ndefender-unified.service; enabled; preset: enabled)
+     Active: active (running) since Sat 2026-03-07 23:56:24 IST; 1h 0min ago
+   Main PID: 11667 (python)
+      Tasks: 12 (limit: 19359)
+        CPU: 10.034s
+     CGroup: /system.slice/ndefender-unified.service
+             └─11667 /home/toybook/ndefender-unified-backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Mar 08 00:51:16 ndefender-pi python[11667]: INFO:     127.0.0.1:43140 - "WebSocket /api/v1/ws" [accepted]
+Mar 08 00:51:16 ndefender-pi python[11667]: INFO:     connection open
+Mar 08 00:51:16 ndefender-pi python[11667]: INFO:     connection closed
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     127.0.0.1:34404 - "GET /api/v1/status HTTP/1.1" 200 OK
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     127.0.0.1:34404 - "GET /api/v1/health HTTP/1.1" 200 OK
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     127.0.0.1:34404 - "GET /api/v1/contacts HTTP/1.1" 200 OK
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     127.0.0.1:34404 - "GET /api/v1/alerts HTTP/1.1" 200 OK
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     127.0.0.1:34408 - "WebSocket /api/v1/ws" [accepted]
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     connection open
+Mar 08 00:51:43 ndefender-pi python[11667]: INFO:     connection closed
+
+### /api/v1/health
+{
+  "timestamp_ms": 1772911603000,
+  "overall_ok": false,
+  "modules": {
+    "ups": {
+      "ok": true,
+      "last_update_ms": 1772911601985,
+      "last_error": null,
+      "comms_ok": true,
+      "model": "Waveshare UPS HAT (E)",
+      "serial": null,
+      "firmware_version": null
+    },
+    "os": {
+      "ok": true,
+      "last_update_ms": 1772911603000,
+      "last_error": null,
+      "hostname": "ndefender-pi",
+      "os_version": "Debian GNU/Linux 12 (bookworm)",
+      "kernel_version": "6.12.62+rpt-rpi-2712",
+      "time_sync_ok": null
+    },
+    "esp32": {
+      "ok": true,
+      "last_update_ms": 1772907985102,
+      "last_error": null,
+      "comms_ok": true
+    },
+    "antsdr": {
+      "ok": true,
+      "last_update_ms": 1772911602162,
+      "last_error": null,
+      "device_present": true,
+      "driver_ok": true
+    },
+    "remoteid": {
+      "ok": false,
+      "last_update_ms": null,
+      "last_error": "REMOTEID_NO_DATA",
+      "input_stream_ok": true
+    },
+    "fusion": {
+      "ok": true,
+      "last_update_ms": 1772911602202,
+      "last_error": null,
+      "active_contacts": 0
+    },
+    "alerts": {
+      "ok": true,
+      "active_alerts": 0,
+      "last_update_ms": 1772911602202,
+      "last_error": null
+    },
+    "video": {
+      "ok": false,
+      "last_update_ms": null,
+      "last_error": "not_implemented",
+      "encoder_ok": null,
+      "camera_ok": null
+    }
+  }
+}
+
+### /api/v1/status modules
+{
+  "ups": {
+    "ok": true,
+    "last_update_ms": 1772911601985,
+    "last_error": null,
+    "battery_percent": 98,
+    "battery_voltage_v": 16.696,
+    "battery_current_a": 0,
+    "current_a": 0,
+    "remaining_capacity_mah": 4702,
+    "cell_voltages_v": [
+      4.175,
+      4.175,
+      4.171,
+      4.176
+    ],
+    "vbus_voltage_v": 15.028,
+    "vbus_current_a": 1.108,
+    "vbus_power_w": 16.686,
+    "state": "discharging",
+    "input_voltage_v": 15.028,
+    "output_voltage_v": 16.696,
+    "load_percent": null,
+    "temperature_c": null,
+    "runtime_s": 0,
+    "on_battery": false
+  },
+  "os": {
+    "ok": true,
+    "last_update_ms": 1772911603014,
+    "last_error": null,
+    "cpu_temp_c": 38.05,
+    "cpu_percent": 31.6,
+    "mem_used_mb": 1365.6875,
+    "mem_total_mb": 16215.046875,
+    "disk_used_mb": 66714.70703125,
+    "disk_total_mb": 119404.86328125,
+    "uptime_s": 8416
+  },
+  "esp32": {
+    "ok": true,
+    "last_update_ms": 1772907985102,
+    "last_error": null,
+    "connected": true,
+    "firmware_version": null,
+    "device_uptime_ms": null,
+    "seq": null,
+    "rssi_dbm": null,
+    "supply_voltage_v": null,
+    "temperature_c": null
+  },
+  "antsdr": {
+    "ok": true,
+    "last_update_ms": 1772911603162,
+    "last_error": null,
+    "device_present": true,
+    "driver_ok": true,
+    "center_freq_hz": null,
+    "sample_rate_hz": 2000000,
+    "rf_bw_hz": 2000000,
+    "gain_db": null,
+    "rf_power_dbm": null,
+    "noise_floor_dbm": null,
+    "stream_active": null
+  },
+  "remoteid": {
+    "ok": false,
+    "last_update_ms": null,
+    "last_error": "REMOTEID_NO_DATA",
+    "active_contacts": 0
+  },
+  "fusion": {
+    "ok": true,
+    "last_update_ms": 1772911603202,
+    "last_error": null,
+    "active_contacts": 0
+  },
+  "alerts": {
+    "ok": true,
+    "active_alerts": 0,
+    "last_update_ms": 1772911603202,
+    "last_error": null
+  },
+  "video": {
+    "ok": false,
+    "last_update_ms": null,
+    "last_error": "not_implemented",
+    "stream_ok": null,
+    "fps": null,
+    "bitrate_kbps": null,
+    "frame_width": null,
+    "frame_height": null
+  }
+}
+
+### /api/v1/contacts type,length
+"array"
+0
+
+### /api/v1/alerts type,length
+"array"
+0
+
+## Step 3 — Stimulus + REST checks
+
+### POST /api/v1/commands antsdr/start
+{"ok":true}
+HTTP_STATUS:200
+
+### /api/v1/contacts type,length
+"array"
+1
+
+### /api/v1/contacts first item
+{
+  "contact_id": "fusion:ui_test_drone",
+  "type": "remoteid",
+  "remoteid_id": "ui_test_drone",
+  "rf_sources": [],
+  "video_sources": [],
+  "first_seen_ms": 1772911624326,
+  "last_seen_ms": 1772911624326,
+  "threat_score": 1
+}
+
+### /api/v1/alerts type,length
+"array"
+1
+
+### /api/v1/alerts first item
+{
+  "alert_id": "alert:fusion:ui_test_drone",
+  "contact_id": "fusion:ui_test_drone",
+  "threat_score": 2,
+  "severity": "medium",
+  "first_seen_ms": 1772911624326,
+  "last_seen_ms": 1772911624326,
+  "state": "active"
+}
+
+
+## Step 3 — WebSocket runtime capture
+
+### HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772911645337,
+  "source": "core",
+  "data": {}
+}
+```
+
+### TELEMETRY_UPDATE
+Not observed within 15s.
+
+### CONTACT_NEW
+Not observed within 15s.
+
+### CONTACT_UPDATE
+Not observed within 15s.
+
+### ALERT_NEW
+Not observed within 15s.
+
+### ALERT_UPDATE
+Not observed within 15s.
+
+### RF_SCAN_STATE
+Not observed within 15s.
+
+
+## Step 3 — WebSocket + RemoteID Injection (live)
+
+### antsdr/start response
+```
+(200, '{"ok":true}')
+```
+
+### HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772911717786,
+  "source": "core",
+  "data": {}
+}
+```
+
+### TELEMETRY_UPDATE
+Not observed within 15s.
+
+### CONTACT_NEW
+```json
+{
+  "type": "CONTACT_NEW",
+  "timestamp_ms": 1772911718351,
+  "source": "remoteid",
+  "data": {
+    "contact_id": "rid:ui_live_1772911717",
+    "basic_id": "ui_live_1772911717",
+    "lat": 22.305,
+    "lon": 70.804,
+    "alt_m": 122.0,
+    "speed_mps": 14.0,
+    "heading_deg": 179.0,
+    "first_seen_ms": 1772911718351,
+    "last_seen_ms": 1772911718351
+  }
+}
+```
+
+### CONTACT_UPDATE
+```json
+{
+  "type": "CONTACT_UPDATE",
+  "timestamp_ms": 1772911718519,
+  "source": "fusion",
+  "data": {
+    "contact_id": "fusion:ui_live_1772911717",
+    "type": "remoteid",
+    "remoteid_id": "ui_live_1772911717",
+    "rf_sources": [
+      "antsdr"
+    ],
+    "video_sources": [],
+    "first_seen_ms": 1772911718351,
+    "last_seen_ms": 1772911718519,
+    "threat_score": 2.0
+  }
+}
+```
+
+### ALERT_NEW
+```json
+{
+  "type": "ALERT_NEW",
+  "timestamp_ms": 1772911718351,
+  "source": "alerts",
+  "data": {
+    "alert_id": "alert:fusion:ui_live_1772911717",
+    "contact_id": "fusion:ui_live_1772911717",
+    "threat_score": 2,
+    "severity": "medium",
+    "first_seen_ms": 1772911718351,
+    "last_seen_ms": 1772911718351,
+    "state": "active"
+  }
+}
+```
+
+### ALERT_UPDATE
+```json
+{
+  "type": "ALERT_UPDATE",
+  "timestamp_ms": 1772911718519,
+  "source": "alerts",
+  "data": {
+    "alert_id": "alert:fusion:ui_live_1772911717",
+    "contact_id": "fusion:ui_live_1772911717",
+    "threat_score": 3,
+    "severity": "high",
+    "first_seen_ms": 1772911718351,
+    "last_seen_ms": 1772911718519,
+    "state": "active"
+  }
+}
+```
+
+### RF_SCAN_STATE
+Not observed within 15s.
+
+## Step 3 — REST after injection
+
+### /api/v1/contacts type,length
+"array"
+0
+
+### /api/v1/contacts first item
+null
+
+### /api/v1/alerts type,length
+"array"
+0
+
+### /api/v1/alerts first item
+null
+
+
+## Step 3 — WebSocket capture (after live inject)
+
+### HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772911810515,
+  "source": "core",
+  "data": {}
+}
+```
+
+### TELEMETRY_UPDATE
+Not observed within 12s.
+
+### CONTACT_NEW
+```json
+{
+  "type": "CONTACT_NEW",
+  "timestamp_ms": 1772911811396,
+  "source": "remoteid",
+  "data": {
+    "contact_id": "rid:ui_ws_1772911810",
+    "basic_id": "ui_ws_1772911810",
+    "lat": 22.306,
+    "lon": 70.805,
+    "alt_m": 123.0,
+    "speed_mps": 14.0,
+    "heading_deg": 178.0,
+    "first_seen_ms": 1772911811396,
+    "last_seen_ms": 1772911811396
+  }
+}
+```
+
+### CONTACT_UPDATE
+```json
+{
+  "type": "CONTACT_UPDATE",
+  "timestamp_ms": 1772911811478,
+  "source": "fusion",
+  "data": {
+    "contact_id": "fusion:ui_ws_1772911810",
+    "type": "remoteid",
+    "remoteid_id": "ui_ws_1772911810",
+    "rf_sources": [
+      "antsdr"
+    ],
+    "video_sources": [],
+    "first_seen_ms": 1772911811396,
+    "last_seen_ms": 1772911811478,
+    "threat_score": 2.0
+  }
+}
+```
+
+### ALERT_NEW
+```json
+{
+  "type": "ALERT_NEW",
+  "timestamp_ms": 1772911811396,
+  "source": "alerts",
+  "data": {
+    "alert_id": "alert:fusion:ui_ws_1772911810",
+    "contact_id": "fusion:ui_ws_1772911810",
+    "threat_score": 2,
+    "severity": "medium",
+    "first_seen_ms": 1772911811396,
+    "last_seen_ms": 1772911811396,
+    "state": "active"
+  }
+}
+```
+
+### ALERT_UPDATE
+```json
+{
+  "type": "ALERT_UPDATE",
+  "timestamp_ms": 1772911811478,
+  "source": "alerts",
+  "data": {
+    "alert_id": "alert:fusion:ui_ws_1772911810",
+    "contact_id": "fusion:ui_ws_1772911810",
+    "threat_score": 3,
+    "severity": "high",
+    "first_seen_ms": 1772911811396,
+    "last_seen_ms": 1772911811478,
+    "state": "active"
+  }
+}
+```
+
+### RF_SCAN_STATE
+Not observed within 12s.
+
+## Step 3 — REST after live inject
+
+### /api/v1/contacts type,length
+"array"
+0
+
+### /api/v1/contacts first item
+null
+
+### /api/v1/alerts type,length
+"array"
+0
+
+### /api/v1/alerts first item
+null
+
+
+## Step 3 — REST immediate after inject
+
+### /api/v1/contacts type,length
+"array"
+1
+
+### /api/v1/contacts first item
+{
+  "contact_id": "fusion:ui_rest_1772911850",
+  "type": "remoteid",
+  "remoteid_id": "ui_rest_1772911850",
+  "rf_sources": [
+    "antsdr"
+  ],
+  "video_sources": [],
+  "first_seen_ms": 1772911851406,
+  "last_seen_ms": 1772911852799,
+  "threat_score": 2.0
+}
+
+### /api/v1/alerts type,length
+"array"
+1
+
+### /api/v1/alerts first item
+{
+  "alert_id": "alert:fusion:ui_rest_1772911850",
+  "contact_id": "fusion:ui_rest_1772911850",
+  "threat_score": 3,
+  "severity": "high",
+  "first_seen_ms": 1772911851406,
+  "last_seen_ms": 1772911852799,
+  "state": "active"
+}
+
+
+## Step 3 — TELEMETRY_UPDATE capture attempt (30s)
+
+### HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772911874168,
+  "source": "core",
+  "data": {}
+}
+```
+
+### TELEMETRY_UPDATE
+Not observed within 30s.
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0

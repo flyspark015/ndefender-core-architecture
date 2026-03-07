@@ -782,3 +782,19 @@ CHANGE:
 AFTER:
 - Compatibility layer active; contract unchanged and UI-safe defaults provided.
 - Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).
+
+
+## 2026-03-08 — Step 3 Live Data Flow Validation
+
+BEFORE:
+- Live runtime flow not explicitly validated with WS + REST evidence.
+
+CHANGE:
+- Captured live REST + WS runtime outputs in `docs/TEST_RESULTS_2026-03-08.md`.
+- Injected RemoteID record to prove CONTACT_* and ALERT_* WS flow + REST array updates.
+- Attempted TELEMETRY_UPDATE capture (not observed within 30s).
+
+AFTER:
+- REST and WS live flow validated for contacts/alerts and HELLO envelope.
+- TELEMETRY_UPDATE not observed (ESP32 telemetry not streaming at capture time).
+- Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).
