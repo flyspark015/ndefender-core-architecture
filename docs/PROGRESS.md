@@ -749,3 +749,19 @@ SUMMARY Total=12 PASS=12 FAIL=0 SKIP=0
   - `pytest -q`: 23 passed, 2 warnings
   - `python3 scripts/run_evidence.py`: SUMMARY Total=20 PASS=20 FAIL=0 SKIP=0
 - Alerts endpoint returns array with active alert(s) and WS emits `ALERT_NEW` / `ALERT_UPDATE`.
+
+
+## 2026-03-08 — UI Backend Contract Freeze (Step 1)
+
+BEFORE:
+- UI-facing endpoints existed but contract not frozen in a single doc.
+
+CHANGE:
+- Added `docs/UI_BACKEND_CONTRACT.md` with frozen UI integration shapes.
+- Locked UI-facing shapes in `docs/LOCKS.md`.
+- Tests/evidence updated to assert contacts/alerts shapes.
+- Full outputs captured in `docs/TEST_RESULTS_2026-03-08.md`.
+
+AFTER:
+- UI contract documented and locked for: status, health, contacts, alerts, commands, websocket envelope.
+- Tests + evidence pass (SUMMARY Total=21 PASS=21 FAIL=0). See test results file.

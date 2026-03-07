@@ -59,7 +59,9 @@ def test_command_ack_when_serial_missing():
         }
 
         ack = ws.receive_json()
+        assert set(["type", "timestamp_ms", "source", "data"]).issubset(ack.keys())
         assert ack["type"] == "COMMAND_ACK"
+        assert ack["source"] == "esp32"
         assert ack["data"]["command"] == "video/select"
         assert ack["data"]["ok"] is False
         assert ack["data"]["code"] == "ESP32_SERIAL_NOT_CONNECTED"

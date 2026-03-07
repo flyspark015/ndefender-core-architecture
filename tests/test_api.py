@@ -350,9 +350,17 @@ def test_contacts_shape():
     assert isinstance(data, list)
     if data:
         contact = data[0]
-        assert "contact_id" in contact
-        assert "type" in contact
-        assert "last_seen_ms" in contact
+        for key in [
+            "contact_id",
+            "type",
+            "remoteid_id",
+            "rf_sources",
+            "video_sources",
+            "first_seen_ms",
+            "last_seen_ms",
+            "threat_score",
+        ]:
+            assert key in contact
 
 
 def test_alerts_shape():
@@ -362,6 +370,13 @@ def test_alerts_shape():
     assert isinstance(data, list)
     if data:
         alert = data[0]
-        assert "alert_id" in alert
-        assert "contact_id" in alert
-        assert "threat_score" in alert
+        for key in [
+            "alert_id",
+            "contact_id",
+            "threat_score",
+            "severity",
+            "first_seen_ms",
+            "last_seen_ms",
+            "state",
+        ]:
+            assert key in alert

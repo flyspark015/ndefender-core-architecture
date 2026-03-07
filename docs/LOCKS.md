@@ -10,3 +10,8 @@
 - 2026-03-06: PHASE C.3 ESP32 module locked at commit 95c6e16 (tests pass, evidence FAIL=0)
 - 2026-03-06: CONTACTS endpoint shape locked (array response) at commit a53310a
 - 2026-03-07: Module AntSDR locked at commit f9ec0a2 (health ok=true, device_present=true, driver_ok=true, RF_SCAN_STATE + RF_CONTACT_* observed)
+- 2026-03-08: UI contract locked — /api/v1/contacts returns JSON array of fused contact objects
+- 2026-03-08: UI contract locked — /api/v1/alerts returns JSON array of alert objects
+- 2026-03-08: UI contract locked — WS event envelope {type,timestamp_ms,source,data}
+- 2026-03-08: UI contract locked — POST /api/v1/commands request/response + deterministic errors
+- 2026-03-08: UI contract locked — /api/v1/status + /api/v1/health module shapes

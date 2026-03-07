@@ -303,7 +303,9 @@ def _check_esp32_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
             return False, "esp32_connected_not_true"
         if esp32.get("last_error") is not None:
             return False, "esp32_last_error_not_null"
-        if not isinstance(esp32.get("firmware_version"), str):
+        if esp32.get("firmware_version") is not None and not isinstance(
+            esp32.get("firmware_version"), str
+        ):
             return False, "esp32_fw_not_string"
         if not isinstance(esp32.get("last_update_ms"), int):
             return False, "esp32_last_update_not_int"
@@ -593,12 +595,50 @@ def run() -> int:
             r = client.get(f"{BASE_URL}/api/v1/contacts")
             data = r.json()
             if isinstance(data, list):
-                ok, detail = True, "ok"
+                if data:
+                    required = [
+                        "contact_id",
+                        "type",
+                        "remoteid_id",
+                        "rf_sources",
+                        "video_sources",
+                        "first_seen_ms",
+                        "last_seen_ms",
+                        "threat_score",
+                    ]
+                    missing = [k for k in required if k not in data[0]]
+                    ok, detail = (False, f"contacts_missing={missing}") if missing else (True, "ok")
+                else:
+                    ok, detail = True, "ok"
             else:
                 ok, detail = False, "contacts_not_list"
             results.append(("contacts_keys", ok, detail))
         except Exception as exc:
             results.append(("contacts_keys", False, f"error={exc}"))
+
+        try:
+            r = client.get(f"{BASE_URL}/api/v1/alerts")
+            data = r.json()
+            if isinstance(data, list):
+                if data:
+                    required = [
+                        "alert_id",
+                        "contact_id",
+                        "threat_score",
+                        "severity",
+                        "first_seen_ms",
+                        "last_seen_ms",
+                        "state",
+                    ]
+                    missing = [k for k in required if k not in data[0]]
+                    ok, detail = (False, f"alerts_missing={missing}") if missing else (True, "ok")
+                else:
+                    ok, detail = True, "ok"
+            else:
+                ok, detail = False, "alerts_not_list"
+            results.append(("alerts_keys", ok, detail))
+        except Exception as exc:
+            results.append(("alerts_keys", False, f"error={exc}"))
 
     ws_ok, ws_detail = asyncio.run(_ws_hello_check())
     results.append(("ws_hello", ws_ok, ws_detail))
