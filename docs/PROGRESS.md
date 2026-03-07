@@ -798,3 +798,19 @@ AFTER:
 - REST and WS live flow validated for contacts/alerts and HELLO envelope.
 - TELEMETRY_UPDATE not observed (ESP32 telemetry not streaming at capture time).
 - Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).
+
+
+## 2026-03-08 — Step 4 Command Flow Validation
+
+BEFORE:
+- Command path not fully validated with WS ACKs + status changes.
+
+CHANGE:
+- Captured live command flow for video/select and antsdr start/stop.
+- Recorded HTTP request/response, WS COMMAND_ACK, and AntSDR status transitions.
+- Appended full outputs to `docs/TEST_RESULTS_2026-03-08.md`.
+
+AFTER:
+- Command flow validated end-to-end (HTTP + WS ACK + status changes).
+- RF_SCAN_STATE not observed within 2s during start/stop (documented).
+- Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).

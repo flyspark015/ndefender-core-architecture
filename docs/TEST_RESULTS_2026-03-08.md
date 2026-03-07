@@ -954,3 +954,451 @@ Not observed within 30s.
 - ws_hello: PASS (ok)
 
 SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+## Step 4 — Command Flow Validation (BEFORE)
+
+### status.modules.esp32
+{
+  "ok": true,
+  "last_update_ms": 1772907985102,
+  "last_error": null,
+  "connected": true,
+  "firmware_version": null,
+  "device_uptime_ms": null,
+  "seq": null,
+  "rssi_dbm": null,
+  "supply_voltage_v": null,
+  "temperature_c": null
+}
+
+### status.modules.antsdr
+{
+  "ok": true,
+  "last_update_ms": 1772912491360,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5805000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": true
+}
+
+### WS HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772912498096,
+  "source": "core",
+  "data": {}
+}
+```
+
+
+## Step 4 — Command runtime validation
+
+### WS HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772912512620,
+  "source": "core",
+  "data": {}
+}
+```
+
+### Command: video/select
+**Request**
+```json
+{
+  "command": "video/select",
+  "payload": {
+    "sel": 1
+  },
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912512771,
+  "source": "esp32",
+  "data": {
+    "command": "video/select",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912512626
+  }
+}
+```
+
+### Command: antsdr/start
+**Request**
+```json
+{
+  "command": "antsdr/start",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912512774,
+  "source": "antsdr",
+  "data": {
+    "command": "antsdr/start",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912512774
+  }
+}
+```
+**AntSDR status after command**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912512363,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5805000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": true
+}
+```
+
+### Command: antsdr/stop
+**Request**
+```json
+{
+  "command": "antsdr/stop",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912512900,
+  "source": "antsdr",
+  "data": {
+    "command": "antsdr/stop",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912512900
+  }
+}
+```
+**AntSDR status after command**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912512363,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5805000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": true
+}
+```
+
+
+## Step 4 — AntSDR start/stop status verification
+
+### antsdr/start
+**Request**
+```json
+{
+  "command": "antsdr/start",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**Status after start**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912538367,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5845000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": false
+}
+```
+
+### antsdr/stop
+**Request**
+```json
+{
+  "command": "antsdr/stop",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**Status after stop**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912538367,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5845000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": false
+}
+```
+
+
+## Step 4 — Command flow with WS + status (timed)
+
+### WS HELLO
+```json
+{
+  "type": "HELLO",
+  "timestamp_ms": 1772912586595,
+  "source": "core",
+  "data": {}
+}
+```
+
+### Command: antsdr/start (timed)
+**Request**
+```json
+{
+  "command": "antsdr/start",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912586607,
+  "source": "antsdr",
+  "data": {
+    "command": "antsdr/start",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912586606
+  }
+}
+```
+**WS RF_SCAN_STATE**
+Not observed within 2s.
+**Status after start (1s)**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912590380,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5845000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": true
+}
+```
+
+### Command: antsdr/stop (timed)
+**Request**
+```json
+{
+  "command": "antsdr/stop",
+  "payload": {},
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912590978,
+  "source": "antsdr",
+  "data": {
+    "command": "antsdr/stop",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912590978
+  }
+}
+```
+**WS RF_SCAN_STATE**
+Not observed within 2s.
+**Status after stop (1s)**
+```json
+{
+  "ok": true,
+  "last_update_ms": 1772912594380,
+  "last_error": null,
+  "device_present": true,
+  "driver_ok": true,
+  "center_freq_hz": 5645000000,
+  "sample_rate_hz": 2000000,
+  "rf_bw_hz": 2000000,
+  "gain_db": null,
+  "rf_power_dbm": null,
+  "noise_floor_dbm": null,
+  "stream_active": false
+}
+```
+
+### Command: video/select (timed)
+**Request**
+```json
+{
+  "command": "video/select",
+  "payload": {
+    "sel": 1
+  },
+  "confirm": false
+}
+```
+**HTTP Response**
+```json
+{
+  "status": 200,
+  "body": {
+    "ok": true
+  }
+}
+```
+**WS COMMAND_ACK**
+```json
+{
+  "type": "COMMAND_ACK",
+  "timestamp_ms": 1772912595923,
+  "source": "esp32",
+  "data": {
+    "command": "video/select",
+    "ok": true,
+    "code": "OK",
+    "detail": "ok",
+    "timestamp_ms": 1772912594430
+  }
+}
+```
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
