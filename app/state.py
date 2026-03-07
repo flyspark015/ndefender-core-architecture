@@ -19,6 +19,9 @@ from .config import (
     ANTSDR_STEP_HZ,
     ANTSDR_SWEEP_PLAN,
     ANTSDR_URI,
+    GPSD_HOST,
+    GPSD_PORT,
+    GPS_POLL_INTERVAL_S,
     REMOTEID_EK_PATH,
     REMOTEID_POLL_INTERVAL_S,
     REMOTEID_TTL_S,
@@ -35,6 +38,8 @@ from .models import (
     AlertsHealth,
     AlertsStatus,
     HealthModules,
+    GpsHealth,
+    GpsStatus,
     OsHealth,
     OsStatus,
     RemoteIdHealth,
@@ -54,6 +59,7 @@ from .modules.antsdr import AntsdrController
 from .modules.remoteid import RemoteIdIngestor
 from .modules.fusion import FusionEngine
 from .modules.alerts import AlertsEngine
+from .modules.gps import GpsdReader
 
 
 def _default_status_modules() -> StatusModules:
@@ -71,6 +77,7 @@ def _default_status_modules() -> StatusModules:
         remoteid=RemoteIdStatus(ok=False, last_error="REMOTEID_FILE_MISSING"),
         fusion=FusionStatus(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
         alerts=AlertsStatus(ok=True, last_error=None, active_alerts=0, last_update_ms=now_ms()),
+        gps=GpsStatus(ok=False, last_error="GPSD_UNAVAILABLE"),
         video=VideoStatus(ok=False, last_error="not_implemented"),
     )
 
@@ -84,6 +91,7 @@ def _default_health_modules() -> HealthModules:
         remoteid=RemoteIdHealth(ok=False, last_error="REMOTEID_FILE_MISSING", input_stream_ok=False),
         fusion=FusionHealth(ok=True, last_error=None, active_contacts=0, last_update_ms=now_ms()),
         alerts=AlertsHealth(ok=True, last_error=None, active_alerts=0, last_update_ms=now_ms()),
+        gps=GpsHealth(ok=False, last_error="GPSD_UNAVAILABLE", input_stream_ok=False),
         video=VideoHealth(ok=False, last_error="not_implemented"),
     )
 
@@ -108,6 +116,8 @@ class StateStore:
     _antsdr_controller: AntsdrController | None = field(default=None, init=False, repr=False)
     _remoteid_thread: Thread | None = field(default=None, init=False, repr=False)
     _remoteid_reader: RemoteIdIngestor | None = field(default=None, init=False, repr=False)
+    _gps_thread: Thread | None = field(default=None, init=False, repr=False)
+    _gps_reader: GpsdReader | None = field(default=None, init=False, repr=False)
     _fusion_thread: Thread | None = field(default=None, init=False, repr=False)
     _fusion_engine: FusionEngine | None = field(default=None, init=False, repr=False)
     _fusion_queue: Any = field(default=None, init=False, repr=False)
@@ -177,6 +187,14 @@ class StateStore:
             target=self._remoteid_loop, args=(self._remoteid_reader,), daemon=True
         )
         self._remoteid_thread.start()
+
+        self._gps_reader = GpsdReader(host=GPSD_HOST, port=GPSD_PORT)
+        status, health = self._gps_reader.poll()
+        with self._lock:
+            self.modules_status.gps = status
+            self.modules_health.gps = health
+        self._gps_thread = Thread(target=self._gps_loop, args=(self._gps_reader,), daemon=True)
+        self._gps_thread.start()
 
         self._fusion_engine = FusionEngine()
         with self._lock:
@@ -256,6 +274,14 @@ class StateStore:
                     ).model_dump()
                 )
             sleep(REMOTEID_POLL_INTERVAL_S)
+
+    def _gps_loop(self, reader: GpsdReader) -> None:
+        while not self._stop_event.is_set():
+            status, health = reader.poll()
+            with self._lock:
+                self.modules_status.gps = status
+                self.modules_health.gps = health
+            sleep(GPS_POLL_INTERVAL_S)
 
     def _fusion_loop(self, engine: FusionEngine, queue) -> None:
         from queue import Empty

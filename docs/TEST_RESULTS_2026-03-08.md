@@ -1402,3 +1402,205 @@ Not observed within 2s.
 - ws_hello: PASS (ok)
 
 SUMMARY Total=21 PASS=21 FAIL=0 SKIP=0
+
+## Step 5 — GPS Integration (BEFORE)
+
+### /dev/serial0
+lrwxrwxrwx 1 root root 7 Mar  7 01:17 /dev/serial0 -> ttyAMA0
+
+### /dev/ttyAMA0
+crw-rw---- 1 root dialout 204, 64 Mar  7 02:01 /dev/ttyAMA0
+
+### gpsd status
+○ gpsd.service - GPS (Global Positioning System) Daemon
+     Loaded: loaded (/lib/systemd/system/gpsd.service; disabled; preset: enabled)
+     Active: inactive (dead)
+TriggeredBy: ● gpsd.socket
+
+## Step 5 — gpsd live output
+
+### gpspipe -w -n 5
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:06:30.467Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+
+### gpspipe -w -n 5 (timeout 5s)
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:06:30.467Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+
+## PHASE STEP 5 — GPS STEP 0 BEFORE
+
+### ls -l /dev/serial0
+```
+lrwxrwxrwx 1 root root 7 Mar  7 01:17 /dev/serial0 -> ttyAMA0
+```
+
+### ls -l /dev/ttyAMA0
+```
+crw-rw---- 1 root dialout 204, 64 Mar  8 01:36 /dev/ttyAMA0
+```
+
+### systemctl status gpsd --no-pager
+```
+● gpsd.service - GPS (Global Positioning System) Daemon
+     Loaded: loaded (/lib/systemd/system/gpsd.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-03-08 01:36:26 IST; 4min 24s ago
+TriggeredBy: ● gpsd.socket
+    Process: 18769 ExecStart=/usr/sbin/gpsd $GPSD_OPTIONS $OPTIONS $DEVICES (code=exited, status=0/SUCCESS)
+   Main PID: 18770 (gpsd)
+      Tasks: 2 (limit: 19359)
+        CPU: 393ms
+     CGroup: /system.slice/gpsd.service
+             └─18770 /usr/sbin/gpsd -n -s 115200 /dev/serial0
+```
+
+### gpspipe -w -n 5 (timeout 5s)
+```
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:06:30.467Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+```
+
+### gpspipe -R -n 5 (timeout 5s)
+```
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:06:30.467Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":false,"nmea":false,"raw":2,"scaled":false,"timing":false,"split24":false,"pps":false}
+```
+
+# Test Results 2026-03-08
+- status_keys: FAIL (missing_modules=['gps'])
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- gps_status: FAIL (gps_ok_not_false)
+- placeholders_status: PASS (ok)
+- health_keys: FAIL (missing_modules=['gps'])
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- gps_health: FAIL (gps_health_ok_not_false)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=23 PASS=19 FAIL=4 SKIP=0
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- gps_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- gps_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=23 PASS=23 FAIL=0 SKIP=0
+
+## PHASE STEP 5 — GPS CONFIG + VALIDATION
+
+### /etc/default/gpsd
+```
+START_DAEMON="true"
+GPSD_OPTIONS="-n -s 115200"
+DEVICES="/dev/serial0"
+USBAUTO="false"
+```
+
+### configure_ublox_gnss.py (attempt)
+```
+Using port: /dev/serial0 @ 115200
+ERROR: No CFG-GNSS response from receiver
+```
+
+### gpspipe -w -n 10 (timeout 8s)
+```
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:16:51.747Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+```
+
+### gpspipe -R -n 10 (timeout 8s)
+```
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:16:51.747Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":false,"nmea":false,"raw":2,"scaled":false,"timing":false,"split24":false,"pps":false}
+```
+
+### /api/v1/status gps module
+```
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "GPS_NO_DATA",
+  "latitude": null,
+  "longitude": null,
+  "altitude_m": null,
+  "speed_mps": null,
+  "heading_deg": null,
+  "fix_mode": null
+}
+```
+
+### pytest -q
+```
+24 passed, 2 warnings in 3.11s
+```
+
+### scripts/run_evidence.py
+```
+SUMMARY Total=23 PASS=23 FAIL=0 SKIP=0
+```
+
+# Test Results 2026-03-08
+- status_keys: PASS (ok)
+- os_populated: PASS (ok)
+- ups_populated: PASS (ok)
+- esp32_status: PASS (ok)
+- antsdr_status: PASS (ok)
+- remoteid_status: PASS (ok)
+- fusion_status: PASS (ok)
+- alerts_status: PASS (ok)
+- gps_status: PASS (ok)
+- placeholders_status: PASS (ok)
+- health_keys: PASS (ok)
+- os_health: PASS (ok)
+- ups_health: PASS (ok)
+- esp32_health: PASS (ok)
+- antsdr_health: PASS (ok)
+- remoteid_health: PASS (ok)
+- fusion_health: PASS (ok)
+- alerts_health: PASS (ok)
+- gps_health: PASS (ok)
+- placeholders_health: PASS (ok)
+- contacts_keys: PASS (ok)
+- alerts_keys: PASS (ok)
+- ws_hello: PASS (ok)
+
+SUMMARY Total=23 PASS=23 FAIL=0 SKIP=0

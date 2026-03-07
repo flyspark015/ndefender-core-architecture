@@ -158,6 +158,26 @@ class AlertsHealth(BaseModel):
     last_error: Optional[str] = None
 
 
+class GpsStatus(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude_m: Optional[float] = None
+    speed_mps: Optional[float] = None
+    heading_deg: Optional[float] = None
+    fix_mode: Optional[int] = None
+
+
+class GpsHealth(BaseModel):
+    ok: bool
+    last_update_ms: Optional[int] = None
+    last_error: Optional[str] = None
+    fix_mode: Optional[int] = None
+    input_stream_ok: Optional[bool] = None
+
+
 class VideoStatus(BaseModel):
     ok: bool
     last_update_ms: Optional[int] = None
@@ -185,6 +205,7 @@ class StatusModules(BaseModel):
     remoteid: RemoteIdStatus
     fusion: FusionStatus
     alerts: AlertsStatus
+    gps: GpsStatus
     video: VideoStatus
 
 
@@ -196,6 +217,7 @@ class HealthModules(BaseModel):
     remoteid: RemoteIdHealth
     fusion: FusionHealth
     alerts: AlertsHealth
+    gps: GpsHealth
     video: VideoHealth
 
 

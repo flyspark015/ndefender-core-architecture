@@ -814,3 +814,19 @@ AFTER:
 - Command flow validated end-to-end (HTTP + WS ACK + status changes).
 - RF_SCAN_STATE not observed within 2s during start/stop (documented).
 - Gates pass (SUMMARY Total=21 PASS=21 FAIL=0).
+
+## 2026-03-08 — Phase Step 5: GPS u-blox Auto-Detect
+
+BEFORE:
+- gpsd running on /dev/serial0 @ 115200 (see `docs/TEST_RESULTS_2026-03-08.md` → PHASE STEP 5 — GPS STEP 0 BEFORE)
+
+CHANGE:
+- Added GPS module (gpsd client) with deterministic status/health fields and polling.
+- Added GNSS constellation configuration script at `/opt/ndefender/system/configure_ublox_gnss.py` (pyubx2).
+- Extended UI backend contract to include `modules.gps` fields.
+- Added tests and evidence checks for GPS module shape/behavior.
+
+AFTER:
+- `pytest -q` and `python3 scripts/run_evidence.py` PASS (see `docs/TEST_RESULTS_2026-03-08.md` → PHASE STEP 5 — GPS CONFIG + VALIDATION).
+- GPS module currently reports `GPS_NO_DATA` (no fix/TPV frames observed yet).
+- GNSS configuration attempt did not receive CFG-GNSS response; receiver response needs verification.

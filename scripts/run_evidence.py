@@ -98,6 +98,17 @@ STATUS_FIELDS = {
         "last_error",
         "active_alerts",
     },
+    "gps": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "latitude",
+        "longitude",
+        "altitude_m",
+        "speed_mps",
+        "heading_deg",
+        "fix_mode",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -118,6 +129,7 @@ HEALTH_FIELDS = {
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
     "alerts": {"ok", "last_update_ms", "last_error", "active_alerts"},
+    "gps": {"ok", "last_update_ms", "last_error", "fix_mode", "input_stream_ok"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -262,6 +274,27 @@ def _check_alerts_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "alerts_last_update_not_epoch"
     if not isinstance(alerts.get("active_alerts"), int):
         return False, "alerts_active_alerts_not_int"
+    return True, "ok"
+
+
+def _check_gps_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    gps = status_obj.get("modules", {}).get("gps", {})
+    if gps.get("ok") is True:
+        if gps.get("last_error") is not None:
+            return False, "gps_last_error_not_null"
+        if not isinstance(gps.get("last_update_ms"), int):
+            return False, "gps_last_update_not_int"
+        if gps.get("last_update_ms") < 1_600_000_000_000:
+            return False, "gps_last_update_not_epoch"
+        if not _is_number(gps.get("latitude")):
+            return False, "gps_lat_not_number"
+        if not _is_number(gps.get("longitude")):
+            return False, "gps_lon_not_number"
+        return True, "ok"
+    if gps.get("ok") is not False:
+        return False, "gps_ok_not_false"
+    if gps.get("last_error") not in ("GPSD_UNAVAILABLE", "GPS_NO_DATA", "GPS_NO_FIX"):
+        return False, "gps_last_error_not_expected"
     return True, "ok"
 def _check_antsdr_status(status_obj: Dict[str, Any]) -> Tuple[bool, str]:
     antsdr = status_obj.get("modules", {}).get("antsdr", {})
@@ -497,6 +530,23 @@ def _check_alerts_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
     if not isinstance(alerts.get("active_alerts"), int):
         return False, "alerts_health_active_alerts_not_int"
     return True, "ok"
+
+
+def _check_gps_health(health_obj: Dict[str, Any]) -> Tuple[bool, str]:
+    gps = health_obj.get("modules", {}).get("gps", {})
+    if gps.get("ok") is True:
+        if gps.get("last_error") is not None:
+            return False, "gps_health_last_error_not_null"
+        if not isinstance(gps.get("last_update_ms"), int):
+            return False, "gps_health_last_update_not_int"
+        if gps.get("last_update_ms") < 1_600_000_000_000:
+            return False, "gps_health_last_update_not_epoch"
+        return True, "ok"
+    if gps.get("ok") is not False:
+        return False, "gps_health_ok_not_false"
+    if gps.get("last_error") not in ("GPSD_UNAVAILABLE", "GPS_NO_DATA", "GPS_NO_FIX"):
+        return False, "gps_health_last_error_not_expected"
+    return True, "ok"
 async def _ws_hello_check() -> Tuple[bool, str]:
     try:
         async with websockets.connect(WS_URL, open_timeout=1, close_timeout=1) as ws:
@@ -545,6 +595,9 @@ def run() -> int:
             ok, detail = _check_alerts_status(status_json)
             results.append(("alerts_status", ok, detail))
 
+            ok, detail = _check_gps_status(status_json)
+            results.append(("gps_status", ok, detail))
+
             ok, detail = _check_placeholders(status_json.get("modules", {}))
             results.append(("placeholders_status", ok, detail))
         except Exception as exc:
@@ -581,6 +634,9 @@ def run() -> int:
 
             ok, detail = _check_alerts_health(health_json)
             results.append(("alerts_health", ok, detail))
+
+            ok, detail = _check_gps_health(health_json)
+            results.append(("gps_health", ok, detail))
 
             ok, detail = _check_placeholders(health_json.get("modules", {}))
             results.append(("placeholders_health", ok, detail))

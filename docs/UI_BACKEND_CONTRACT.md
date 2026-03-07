@@ -26,7 +26,7 @@
     "disk_total_mb": 29491.0,
     "uptime_s": 123456
   },
-  "modules": { "ups": { ... }, "os": { ... }, "esp32": { ... }, "antsdr": { ... }, "remoteid": { ... }, "fusion": { ... }, "alerts": { ... }, "video": { ... } }
+  "modules": { "ups": { ... }, "os": { ... }, "esp32": { ... }, "antsdr": { ... }, "remoteid": { ... }, "fusion": { ... }, "alerts": { ... }, "gps": { ... }, "video": { ... } }
 }
 ```
 
@@ -122,6 +122,16 @@ Required keys:
 - `ok`, `last_update_ms`, `last_error`
 - `active_alerts` (int|null)
 
+#### `modules.gps`
+Required keys:
+- `ok`, `last_update_ms`, `last_error`
+- `latitude` (float|null)
+- `longitude` (float|null)
+- `altitude_m` (float|null)
+- `speed_mps` (float|null)
+- `heading_deg` (float|null)
+- `fix_mode` (int|null)
+
 #### `modules.video`
 Required keys:
 - `ok`, `last_update_ms`, `last_error`
@@ -141,7 +151,7 @@ Required keys:
 {
   "timestamp_ms": 1700000000000,
   "overall_ok": true,
-  "modules": { "ups": { ... }, "os": { ... }, "esp32": { ... }, "antsdr": { ... }, "remoteid": { ... }, "fusion": { ... }, "alerts": { ... }, "video": { ... } }
+  "modules": { "ups": { ... }, "os": { ... }, "esp32": { ... }, "antsdr": { ... }, "remoteid": { ... }, "fusion": { ... }, "alerts": { ... }, "gps": { ... }, "video": { ... } }
 }
 ```
 
@@ -197,6 +207,12 @@ Required keys:
 Required keys:
 - `ok`, `last_update_ms`, `last_error`
 - `active_alerts` (int|null)
+
+#### `modules.gps`
+Required keys:
+- `ok`, `last_update_ms`, `last_error`
+- `fix_mode` (int|null)
+- `input_stream_ok` (bool|null)
 
 #### `modules.video`
 Required keys:

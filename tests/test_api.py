@@ -86,6 +86,17 @@ STATUS_FIELDS = {
         "last_error",
         "active_alerts",
     },
+    "gps": {
+        "ok",
+        "last_update_ms",
+        "last_error",
+        "latitude",
+        "longitude",
+        "altitude_m",
+        "speed_mps",
+        "heading_deg",
+        "fix_mode",
+    },
     "video": {
         "ok",
         "last_update_ms",
@@ -106,6 +117,7 @@ HEALTH_FIELDS = {
     "remoteid": {"ok", "last_update_ms", "last_error", "input_stream_ok"},
     "fusion": {"ok", "last_update_ms", "last_error", "active_contacts"},
     "alerts": {"ok", "last_update_ms", "last_error", "active_alerts"},
+    "gps": {"ok", "last_update_ms", "last_error", "fix_mode", "input_stream_ok"},
     "video": {"ok", "last_update_ms", "last_error", "encoder_ok", "camera_ok"},
 }
 
@@ -215,6 +227,22 @@ def _assert_alerts_state(module_obj):
     assert module_obj["last_error"] is None
     assert isinstance(module_obj["active_alerts"], int)
 
+
+def _assert_gps_state(module_obj):
+    if module_obj["ok"] is True:
+        assert module_obj["last_error"] is None
+        assert isinstance(module_obj["last_update_ms"], int)
+        assert module_obj["last_update_ms"] >= 1_600_000_000_000
+        assert _is_number(module_obj["latitude"])
+        assert _is_number(module_obj["longitude"])
+        return
+    assert module_obj["ok"] is False
+    assert module_obj["last_error"] in (
+        "GPSD_UNAVAILABLE",
+        "GPS_NO_DATA",
+        "GPS_NO_FIX",
+    )
+
 def _assert_ups_values(ups_obj):
     assert ups_obj["ok"] is True
     assert ups_obj["last_error"] is None
@@ -252,6 +280,7 @@ def test_status_shape():
     _assert_remoteid_state(data["modules"]["remoteid"])
     _assert_fusion_state(data["modules"]["fusion"])
     _assert_alerts_state(data["modules"]["alerts"])
+    _assert_gps_state(data["modules"]["gps"])
 
     for module_name in ["video"]:
         _assert_placeholder(data["modules"][module_name])
