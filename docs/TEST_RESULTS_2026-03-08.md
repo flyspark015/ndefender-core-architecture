@@ -1604,3 +1604,130 @@ SUMMARY Total=23 PASS=23 FAIL=0 SKIP=0
 - ws_hello: PASS (ok)
 
 SUMMARY Total=23 PASS=23 FAIL=0 SKIP=0
+
+## PHASE STEP 5 — GPS END-TO-END RUNTIME
+
+### STEP 0 — serial/gps reality check
+
+#### ls -l /dev/serial0 /dev/ttyAMA0
+```
+lrwxrwxrwx 1 root root          7 Mar  7 01:17 /dev/serial0 -> ttyAMA0
+crw-rw---- 1 root dialout 204, 64 Mar  8 01:46 /dev/ttyAMA0
+```
+
+#### grep enable_uart
+```
+72:enable_uart=1
+```
+
+#### /etc/default/gpsd
+```
+START_DAEMON="true"
+GPSD_OPTIONS="-n -s 115200"
+DEVICES="/dev/serial0"
+USBAUTO="false"
+```
+
+#### gpsd status (head)
+```
+● gpsd.service - GPS (Global Positioning System) Daemon
+     Loaded: loaded (/lib/systemd/system/gpsd.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-03-08 01:46:48 IST; 40min ago
+TriggeredBy: ● gpsd.socket
+    Process: 20879 ExecStart=/usr/sbin/gpsd $GPSD_OPTIONS $OPTIONS $DEVICES (code=exited, status=0/SUCCESS)
+   Main PID: 20880 (gpsd)
+      Tasks: 2 (limit: 19359)
+        CPU: 1.144s
+     CGroup: /system.slice/gpsd.service
+             └─20880 /usr/sbin/gpsd -n -s 115200 /dev/serial0
+
+Mar 08 02:27:09 ndefender-pi gpsd[20880]: gpsd:ERROR: ERROR response: {"class":"ERROR","message":"Unrecognized request '\n\n'"}\x0d\x0a
+```
+
+#### raw serial (10s)
+```
+<no output>
+```
+
+#### gpspipe -w -n 20
+```
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/serial0","activated":"2026-03-07T20:16:51.747Z","native":0,"bps":115200,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+```
+
+#### cgps -s (10s)
+```
+Status: NO FIX (0 secs)
+Seen  0/Used  0
+(lat/lon/alt: n/a)
+```
+
+### STEP 1 — UART fix
+
+#### serial-getty disabled + masked
+```
+serial-getty@ttyAMA0.service masked and inactive
+```
+
+#### cmdline updated (console=serial0 removed)
+```
+console=tty1 root=PARTUUID=fa506b36-02 rootfstype=ext4 fsck.repair=yes rootwait loglevel=7 ignore_loglevel systemd.log_level=debug systemd.log_target=kmsg printk.devkmsg=on
+boot_delay=3
+```
+
+### STEP 2 — Baud/protocol discovery (direct serial read)
+```
+=== baud 9600 ===
+status: ok
+bytes: 0
+
+=== baud 38400 ===
+status: ok
+bytes: 0
+
+=== baud 57600 ===
+status: ok
+bytes: 0
+
+=== baud 115200 ===
+status: ok
+bytes: 0
+```
+
+### STEP 3 — configure_ublox_gnss.py (auto baud)
+```
+probe baud 9600: bytes=0
+probe baud 38400: bytes=0
+probe baud 57600: bytes=0
+probe baud 115200: bytes=0
+ERROR: No serial data detected at any baud; check wiring/power
+```
+
+### STEP 4 — backend gps status/health
+```
+/api/v1/status .modules.gps
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "GPS_NO_DATA",
+  "latitude": null,
+  "longitude": null,
+  "altitude_m": null,
+  "speed_mps": null,
+  "heading_deg": null,
+  "fix_mode": null
+}
+
+/api/v1/health .modules.gps
+{
+  "ok": false,
+  "last_update_ms": null,
+  "last_error": "GPS_NO_DATA",
+  "fix_mode": null,
+  "input_stream_ok": true
+}
+```
+
+### FINAL CLASSIFICATION
+HARDWARE_OR_WIRING_BLOCKED_NO_DATA

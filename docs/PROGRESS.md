@@ -830,3 +830,20 @@ AFTER:
 - `pytest -q` and `python3 scripts/run_evidence.py` PASS (see `docs/TEST_RESULTS_2026-03-08.md` → PHASE STEP 5 — GPS CONFIG + VALIDATION).
 - GPS module currently reports `GPS_NO_DATA` (no fix/TPV frames observed yet).
 - GNSS configuration attempt did not receive CFG-GNSS response; receiver response needs verification.
+
+## 2026-03-08 — Phase Step 5: GPS Runtime Completion
+
+BEFORE:
+- UART console enabled (`console=serial0,115200`) and `serial-getty@ttyAMA0` active.
+- gpsd running but no TPV/RAW data observed (see `docs/TEST_RESULTS_2026-03-08.md` → PHASE STEP 5 — GPS END-TO-END RUNTIME).
+
+CHANGE:
+- Disabled and masked `serial-getty@ttyAMA0`.
+- Removed `console=serial0,115200` from `/boot/firmware/cmdline.txt`.
+- Added auto-baud detection and clearer diagnostics to `/opt/ndefender/system/configure_ublox_gnss.py`.
+
+AFTER:
+- Direct serial reads at 9600/38400/57600/115200 show **0 bytes**.
+- gpsd still shows no TPV data; backend reports `GPS_NO_DATA`.
+- Final classification: **HARDWARE_OR_WIRING_BLOCKED_NO_DATA** (no raw serial output from GPS module).
+- Full evidence in `docs/TEST_RESULTS_2026-03-08.md` → PHASE STEP 5 — GPS END-TO-END RUNTIME.
